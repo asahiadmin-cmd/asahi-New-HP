@@ -2411,9 +2411,9 @@
                                             <div className="flex items-center justify-between px-1 shrink-0">
                                                 <h2 className="text-2xl font-black text-slate-900 tracking-tight"><GradientText>訪問エリア</GradientText></h2>
                                             </div>
-                                            {/* area_map.png - 新しい画像に合わせて角を丸め、余った縦幅は白背景で埋めて右側と高さを完璧に合わせる */}
-                                            <div className="flex-1 w-full bg-white rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-slate-100/50 overflow-hidden">
-                                                <img src="area_map.png" alt="訪問エリアマップ - 東大阪・八尾・門真を中心に8エリアで訪問しています" className="w-full h-full object-contain object-top" loading="lazy" />
+                                            {/* area_map.png - 画像の元サイズに引きずられないよう md:absolute を付与し、右カラムの高さと完全に連動させ下端を揃える */}
+                                            <div className="flex-1 w-full bg-white rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-slate-100/50 overflow-hidden md:relative min-h-[300px]">
+                                                <img src="area_map.png" alt="訪問エリアマップ - 東大阪・八尾・門真を中心に8エリアで訪問しています" className="w-full h-full md:absolute md:inset-0 object-contain object-top" loading="lazy" />
                                             </div>
                                         </div>
                                         {/* --- 左カラム 下部 (スタッフに選ばれる理由) --- */}
@@ -2461,18 +2461,18 @@
                                                 <h2 className="text-2xl font-black text-slate-900 tracking-tight"><GradientText>数字で見る</GradientText></h2>
                                                 <span className="text-xs font-bold text-slate-400">毎月月初に更新</span>
                                             </div>
-                                                {/* 平均年収（全幅） */}
-                                                <div className="bg-white/80 backdrop-blur-sm px-5 py-4 md:px-6 md:py-5 rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-white/50">
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        <div className="p-1 bg-slate-50 rounded-lg"><Coins size={16} style={{ stroke: "url(#gold-gradient)" }} /></div>
-                                                        <span className="font-bold text-[11px] md:text-xs tracking-wider text-slate-500 uppercase">社員の平均年収</span>
+                                                {/* 平均年収（全幅） - 全体のバランスを取るため約95%サイズに微縮小 */}
+                                                <div className="bg-white/80 backdrop-blur-sm px-4 py-3 md:px-5 md:py-4 rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-white/50">
+                                                    <div className="flex items-center gap-2 mb-1.5">
+                                                        <div className="p-1 bg-slate-50 rounded-lg"><Coins size={14} style={{ stroke: "url(#gold-gradient)" }} /></div>
+                                                        <span className="font-bold text-[10px] md:text-[11px] tracking-wider text-slate-500 uppercase">社員の平均年収</span>
                                                     </div>
                                                     <div className="flex items-end justify-between">
-                                                        <div className="flex items-baseline gap-1 md:gap-1.5">
-                                                            <span className="text-6xl md:text-[4rem] lg:text-[5rem] font-black tracking-tighter leading-none"><GradientText>{getNumericStat('平均年収', '631')}</GradientText></span>
-                                                            <span className="text-lg md:text-xl font-bold text-slate-400">万円</span>
+                                                        <div className="flex items-baseline gap-1">
+                                                            <span className="text-5xl md:text-6xl lg:text-[4.2rem] font-black tracking-tighter leading-none"><GradientText>{getNumericStat('平均年収', '631')}</GradientText></span>
+                                                            <span className="text-base md:text-lg font-bold text-slate-400">万円</span>
                                                         </div>
-                                                        <span className="text-[10px] md:text-[11px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-md mb-1">{getNumericStat('平均年収注釈', '※2025年度 途中入社、役員を除く')}</span>
+                                                        <span className="text-[9px] md:text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md mb-1">{getNumericStat('平均年収注釈', '※2025年度 途中入社、役員を除く')}</span>
                                                     </div>
                                                 </div>
                                                 {/* 男女比率（全幅） */}
