@@ -2422,31 +2422,31 @@
                                                     <div className="p-1.5 bg-slate-50 rounded-xl"><Users size={20} className="text-slate-600" /></div>
                                                     <h3 className="text-base md:text-lg font-black text-slate-800">スタッフに選ばれる理由</h3>
                                                 </div>
-                                                <div className="space-y-4">
+                                                <div className="flex-1 flex flex-col justify-around py-1">
                                                     <div className="flex items-center gap-3">
                                                         <div className="shrink-0 w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center"><CheckCircle size={14} className="text-orange-500" /></div>
-                                                        <p className="text-sm font-bold text-slate-800">自宅から通いやすいエリアで配属</p>
+                                                        <p className="text-[13px] xl:text-sm font-bold text-slate-800 tracking-tight leading-snug">{getNumericStat('選ばれる理由1', '自宅から通いやすいエリアで配属')}</p>
                                                         <div className="ml-auto shrink-0">
                                                             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-3">
                                                         <div className="shrink-0 w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center"><CheckCircle size={14} className="text-orange-500" /></div>
-                                                        <p className="text-sm font-bold text-slate-800">直行直帰OKで移動時間を削減</p>
+                                                        <p className="text-[13px] xl:text-sm font-bold text-slate-800 tracking-tight leading-snug">{getNumericStat('選ばれる理由2', '直行直帰OKで移動時間を削減')}</p>
                                                         <div className="ml-auto shrink-0">
                                                             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><path d="M5 17h14" /><path d="M6 17H4a1 1 0 0 1-1-1v-3a1 1 0 0 1 .4-.8l3.1-2.3A1 1 0 0 1 7.1 10h4.4a1 1 0 0 1 .7.3l2.8 2.8a1 1 0 0 0 .7.3H19a2 2 0 0 1 2 2v.7a1 1 0 0 1-1 1h-1" /><circle cx="7.5" cy="17" r="2" /><circle cx="16.5" cy="17" r="2" /></svg>
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-3">
                                                         <div className="shrink-0 w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center"><CheckCircle size={14} className="text-orange-500" /></div>
-                                                        <p className="text-sm font-bold text-slate-800">車・自転車・バイク通勤OK</p>
+                                                        <p className="text-[13px] xl:text-sm font-bold text-slate-800 tracking-tight leading-snug">{getNumericStat('選ばれる理由3', '車・自転車・バイク通勤OK')}</p>
                                                         <div className="ml-auto shrink-0">
                                                             <Bike size={28} className="text-slate-400" style={{ strokeWidth: 1.5 }} />
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-3">
                                                         <div className="shrink-0 w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center"><CheckCircle size={14} className="text-orange-500" /></div>
-                                                        <p className="text-sm font-bold text-slate-800">希望休・シフト相談しやすい環境</p>
+                                                        <p className="text-[13px] xl:text-sm font-bold text-slate-800 tracking-tight leading-snug">{getNumericStat('選ばれる理由4', '希望休・シフト相談しやすい環境')}</p>
                                                         <div className="ml-auto shrink-0">
                                                             <Calendar size={28} className="text-slate-400" style={{ strokeWidth: 1.5 }} />
                                                         </div>
@@ -2572,26 +2572,26 @@
                                                         <div className="text-center mb-5">
                                                             <div className="inline-flex items-center gap-1 text-slate-400 text-xs font-bold">
                                                                 <span>\</span>
-                                                                <span className="text-base md:text-lg font-black text-slate-800">訪問エリアの希望も考慮します</span>
+                                                                <span className="text-[13px] xl:text-lg font-black text-slate-800 whitespace-nowrap tracking-tight">訪問エリアの希望も考慮します</span>
                                                                 <span>/</span>
                                                             </div>
                                                         </div>
                                                         <div className="grid grid-cols-2 gap-4">
                                                             <div className="flex flex-col items-center text-center gap-2">
                                                                 <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center"><MapPin size={24} className="text-orange-500" /></div>
-                                                                <p className="text-xs font-bold text-slate-700 leading-tight">希望エリア<br />を考慮</p>
+                                                                <p className="text-[10px] xl:text-xs font-bold text-slate-700 leading-tight">希望エリア<br />を考慮</p>
                                                             </div>
                                                             <div className="flex flex-col items-center text-center gap-2">
                                                                 <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center"><Clock size={24} className="text-orange-500" /></div>
-                                                                <p className="text-xs font-bold text-slate-700 leading-tight">無理のない<br />移動距離</p>
+                                                                <p className="text-[10px] xl:text-xs font-bold text-slate-700 leading-tight">無理のない<br />移動距離</p>
                                                             </div>
                                                             <div className="flex flex-col items-center text-center gap-2">
                                                                 <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center"><Calendar size={24} className="text-orange-500" /></div>
-                                                                <p className="text-xs font-bold text-slate-700 leading-tight">シフト調整<br />しやすい</p>
+                                                                <p className="text-[10px] xl:text-xs font-bold text-slate-700 leading-tight">シフト調整<br />しやすい</p>
                                                             </div>
                                                             <div className="flex flex-col items-center text-center gap-2">
                                                                 <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center"><Heart size={24} className="text-orange-500" /></div>
-                                                                <p className="text-xs font-bold text-slate-700 leading-tight">ブランク<br />復帰も安心</p>
+                                                                <p className="text-[10px] xl:text-xs font-bold text-slate-700 leading-tight">ブランク<br />復帰も安心</p>
                                                             </div>
                                                         </div>
                                                     </div>

@@ -177,12 +177,14 @@ function parseSectionData(data, targetSection) {
     if (foundSection) {
       if (row.every(cell => cell === '')) continue;
       if (!sectionHeaders) {
-        sectionHeaders = row.filter(cell => cell !== '');
+        sectionHeaders = row; // ヘッダーのインデックスを保持するためにそのまま使用
         continue;
       }
       const obj = {};
       sectionHeaders.forEach((header, index) => {
-        obj[header] = row[index];
+        if (header !== '') { // ヘッダー名が存在する列のみマッピング
+          obj[header] = row[index];
+        }
       });
       sectionData.push(obj);
     }
@@ -263,14 +265,16 @@ function parseSectionedSheet(data, targetSection) {
 
       // ヘッダー行を設定
       if (!sectionHeaders) {
-        sectionHeaders = row.filter(cell => cell !== '');
+        sectionHeaders = row;
         continue;
       }
 
       // データ行を追加
       const obj = {};
       sectionHeaders.forEach((header, index) => {
-        obj[header] = row[index];
+        if (header !== '') {
+          obj[header] = row[index];
+        }
       });
       sectionData.push(obj);
     }
