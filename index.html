@@ -2307,7 +2307,7 @@
 
             // 登録ヘルパー給与分布データを取得（スプシ category: 給与分布_ヘルパー、key: ~5万 / 5万~10万 / 10万~20万 / 20万~30万 / 30万~）
             const getHelperSalaryDistribution = () => {
-                const brackets = ['~5万', '5万~10万', '10万~20万', '20万~30万', '30万~万'];
+                const brackets = ['~5万', '5万~10万', '10万~20万', '20万~30万', '30万~'];
                 const defaults = { '~5万': 9, '5万~10万': 25, '10万~20万': 35, '20万~30万': 12, '30万~': 1 };
                 return brackets.map(bracket => {
                     const v = getStat('給与分布_ヘルパー', bracket);
@@ -2494,7 +2494,7 @@
                                                 </div>
                                                 {/* 従業員数 & 利用者数 & バイク台数 */}
                                                 <div className="grid grid-cols-3 gap-3">
-                                                    <StatCard icon={Users} title="従業員数" value={getNumericStat('従業員数', '127')} unit="名" subText="※うち社員35名" gradientId="purple-gradient" />
+                                                    <StatCard icon={Users} title="従業員数" value={getNumericStat('従業員数', '127')} unit="名" subText={getNumericStat('従業員数注釈', '※うち社員35名')} gradientId="purple-gradient" />
                                                     <StatCard icon={Accessibility} title="利用者数" value={getNumericStat('利用者数', '484')} unit="名" gradientId="blue-gradient" />
                                                     <StatCard icon={Bike} title="社用バイク" value={getNumericStat('バイク台数', '60')} unit="台" subText={getNumericStat('バイク内訳', '125cc 37台/電動自転車9台/他原付 17台')} gradientId="green-gradient" />
                                                 </div>
