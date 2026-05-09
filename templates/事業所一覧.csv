@@ -1,0 +1,12 @@
+category,url_pc,url_mobile,description,order
+exterior,https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80,,本社外観,1
+office,https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=800&q=80,,オフィス1,1
+office,https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=800&q=80,,オフィス2,2
+breakroom,https://images.unsplash.com/photo-1596489398285-16d4e4c9f562?auto=format&fit=crop&w=800&q=80,,畳の小上がり,1
+breakroom,https://images.unsplash.com/photo-1527192491265-7e15c55b1ed2?auto=format&fit=crop&w=800&q=80,,ランチテーブル,2
+breakroom,https://images.unsplash.com/photo-1584744982491-665216d95f8b?auto=format&fit=crop&w=800&q=80,,休憩スペース1,3
+breakroom,https://images.unsplash.com/photo-1606787366850-de6330128bfc?auto=format&fit=crop&w=800&q=80,,休憩スペース2,4
+breakroom,https://images.unsplash.com/photo-1569058242253-92a9c755a293?auto=format&fit=crop&w=800&q=80,,休憩スペース3,5
+satellite_wakae,https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80,,若江 施設,1
+satellite_fuse,https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80,,布施 施設,2
+satellite_kano,https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80,,加納 施設,3
