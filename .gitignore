@@ -1,2 +1,3 @@
 dist/
 *.mov
+node_modules/

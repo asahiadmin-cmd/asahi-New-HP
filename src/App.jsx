@@ -1,8 +1,5 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './index.css';
-
-
-        const { useState, useEffect, useRef } = React;
 
         // ==========================================
         // スプレッドシート設定
@@ -10,9 +7,9 @@ import './index.css';
         const SPREADSHEET_CONFIG = {
             // ここにGoogle Apps ScriptのデプロイURLを設定してください
             // 例: 'https://script.google.com/macros/s/AKfycby.../exec'
-            // New deployment URL (v9 - 2026/01/29)
-            apiUrl: 'https://script.google.com/macros/s/AKfycbx2ruIiBFf2t2eiGxQsU5fOCkzE7mLquJ-EGN_qCQmw5AEViUDp8vTkcpASiduGLCYwSA/exec',
-            formApiUrl: 'https://script.google.com/macros/s/AKfycbxhmGvzctdpfIpprOvF9Db_AND3Ov6KrFcuif1GyFHGiSbrtiFZcXVc4cjpjRL5rfpm8A/exec',
+            // New deployment URL
+            apiUrl: 'https://script.google.com/macros/s/AKfycbyU2fTnUPkKtUKevHhLZs1XQpW31cQHLFWGSwfC4NY7xXdyMBp8L4dRzyBXhx9LBwlz8g/exec',
+            formApiUrl: 'https://script.google.com/macros/s/AKfycbyU2fTnUPkKtUKevHhLZs1XQpW31cQHLFWGSwfC4NY7xXdyMBp8L4dRzyBXhx9LBwlz8g/exec',
             // 方式B: 6シート構成（ページ = シート）
             // section を指定することでシート内のセクションを取得
             sheets: {
@@ -302,8 +299,9 @@ import './index.css';
             // /file/d/ID/view 形式または id=ID 形式からのID抽出
             const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
             if (match && match[1]) {
-                // サムネイル生成APIを使用（sz=w2000で高画質化）
-                return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w2000`;
+                // lh3.googleusercontent.com経由で配信（iOS Safari対応）
+                // drive.google.com/thumbnail はiOS SafariのITPでブロックされるため
+                return `https://lh3.googleusercontent.com/d/${match[1]}=w2000`;
             }
             return url;
         };
@@ -335,7 +333,7 @@ import './index.css';
 
         const Logo = ({ textColor = "text-slate-900" }) => (
             <div className="flex items-center gap-1.5 md:gap-2">
-                <img src="logo.png" alt="ライフサポートあさひ" className="h-8 w-8 md:h-9 md:w-9 object-contain" />
+                <img src="/logo.png" alt="ライフサポートあさひ" className="h-8 w-8 md:h-9 md:w-9 object-contain" />
                 <span className="text-base md:text-2xl font-black tracking-wide bg-gradient-to-r from-orange-500 via-orange-400 to-amber-500 bg-clip-text text-transparent transition-all duration-300 whitespace-nowrap" style={{ textShadow: 'none', letterSpacing: '0.05em' }}>ライフサポートあさひ</span>
             </div>
         );
@@ -401,7 +399,7 @@ import './index.css';
             <footer className="bg-white text-slate-800 py-4 mt-0 border-t border-slate-200">
                 <div className="container mx-auto px-6 text-center md:text-left">
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                        <div className="flex items-center gap-4"><div className="flex items-center gap-2"><img src="logo.png" alt="株式会社旭" className="h-9 w-9 object-contain" /><span className="text-2xl font-black tracking-wide bg-gradient-to-r from-orange-500 via-orange-400 to-amber-500 bg-clip-text text-transparent">株式会社旭</span></div><p className="hidden md:block text-[10px] text-slate-600 font-bold border-l-2 border-slate-300 pl-4 leading-tight">大阪府東大阪市荒本北2丁目5-5<br />訪問介護・障がい福祉サービス事業</p></div>
+                        <div className="flex items-center gap-4"><div className="flex items-center gap-2"><img src="/logo.png" alt="株式会社旭" className="h-9 w-9 object-contain" /><span className="text-2xl font-black tracking-wide bg-gradient-to-r from-orange-500 via-orange-400 to-amber-500 bg-clip-text text-transparent">株式会社旭</span></div><p className="hidden md:block text-[10px] text-slate-600 font-bold border-l-2 border-slate-300 pl-4 leading-tight">大阪府東大阪市荒本北2丁目5-5<br />訪問介護・障がい福祉サービス事業</p></div>
                         <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs font-black text-slate-800">
                             <button onClick={() => onNavigate('home')} className="hover:text-slate-600 transition-colors">トップページ</button>
                             <button onClick={() => onNavigate('company')} className="hover:text-slate-600 transition-colors">会社概要</button>
@@ -461,11 +459,12 @@ import './index.css';
         const PhotoSlider = ({ sliderData = [] }) => {
             const [currentIndex, setCurrentIndex] = useState(0);
             const images = sliderData.length > 0 ? sliderData : DEFAULT_DATA.slider;
+
             useEffect(() => { const timer = setInterval(() => { setCurrentIndex((prev) => (prev + 1) % images.length); }, 5000); return () => clearInterval(timer); }, [images.length]);
             const nextSlide = () => setCurrentIndex((prev) => (prev + 1) % images.length);
             const prevSlide = () => setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
             return (
-                <div className="relative w-full aspect-video md:aspect-auto md:h-full rounded-3xl overflow-hidden shadow-xl border border-white/50 group">
+                <div className="absolute inset-0 rounded-3xl overflow-hidden shadow-xl border border-white/50 group">
                     {images.map((img, index) => (
                         <div key={index} className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentIndex ? 'opacity-100' : 'opacity-0'}`}>
                             <img src={getImageUrl(img, 'url_pc', 'url_mobile', 'url')} alt={img.label} className="w-full h-full object-cover" />
@@ -584,9 +583,9 @@ import './index.css';
         };
 
         const StatCard = ({ icon: Icon, title, value, unit, subText, className = "", gradientId = "orange-gradient", titleClass = "text-xs" }) => (
-            <div className={`bg-white p-6 rounded-2xl shadow-[0_4px_15px_rgb(0,0,0,0.03)] hover:shadow-[0_8px_25px_rgb(0,0,0,0.06)] transition-all duration-300 flex flex-row items-center justify-between ${className} h-full`}>
-                <div><h4 className={`${titleClass} font-black text-slate-400 uppercase tracking-widest mb-2`}>{title}</h4><div className="flex items-baseline gap-1"><span className="text-4xl font-black text-slate-800 tracking-tighter">{value}</span><span className="text-base font-bold text-slate-500">{unit}</span></div>{subText && <p className="text-xs text-slate-500 mt-2 font-bold leading-tight">{subText}</p>}</div>
-                <div className="p-3 rounded-2xl bg-slate-50 group"><Icon size={28} style={{ stroke: `url(#${gradientId})` }} /></div>
+            <div className={`bg-white/80 p-3 md:p-5 rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_25px_rgb(0,0,0,0.06)] transition-all duration-300 flex flex-col md:flex-row md:items-center md:justify-between ${className} h-full`}>
+                <div className="min-w-0 flex-1"><h4 className="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest mb-0.5 md:mb-1">{title}</h4><div className="flex items-baseline gap-0.5"><span className="text-2xl md:text-4xl font-black text-slate-800 tracking-tighter">{value}</span><span className="text-xs md:text-base font-bold text-slate-500">{unit}</span></div>{subText && <p className="text-[9px] md:text-[11px] text-slate-500 mt-0.5 md:mt-1 font-bold leading-tight">{subText}</p>}</div>
+                <div className="hidden md:block p-2 md:p-2.5 rounded-xl bg-slate-50 group shrink-0 ml-2"><Icon size={24} className="md:w-7 md:h-7" style={{ stroke: `url(#${gradientId})` }} /></div>
             </div>
         );
 
@@ -686,7 +685,7 @@ import './index.css';
             };
 
             return (
-                <div id="job-detail-card" className="scroll-mt-32 max-w-3xl mx-auto mt-8 mb-16 rounded-2xl overflow-hidden shadow-2xl border border-white/60 bg-white/95 backdrop-blur-xl animate-[popup_0.5s_cubic-bezier(0.22,1,0.36,1)_forwards]"><style>{`@keyframes popup { 0% { transform: scale(0.9); opacity: 0; } 60% { transform: scale(1.02); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }`}</style><div className="bg-slate-100/90 border-b border-slate-200 px-4 py-3 flex items-center justify-between shrink-0"><div className="flex gap-1.5 cursor-pointer" onClick={onClose} title="閉じる"><div className="w-3 h-3 rounded-full bg-[#FF5F57] shadow-sm hover:bg-[#FF5F57]/80 transition-colors flex items-center justify-center group"><X size={8} className="text-black/50 opacity-0 group-hover:opacity-100" /></div><div className="w-3 h-3 rounded-full bg-[#FEBC2E] shadow-sm"></div><div className="w-3 h-3 rounded-full bg-[#28C840] shadow-sm"></div></div><div className="text-xl font-bold text-slate-700 flex items-center gap-1"><Briefcase size={18} /> 正社員</div><div className="w-10 text-right"><button onClick={onClose} className="text-xs font-bold text-slate-400 hover:text-slate-600">CLOSE</button></div></div><div className="p-6 md:p-8"><div className="flex flex-col md:flex-row items-start justify-between gap-6 border-b border-slate-100 pb-6 mb-6"><div className="w-full md:w-auto"><div className="flex flex-wrap items-baseline gap-2 mb-2"><span className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-800 tracking-tight">{salary}</span><span className="text-sm sm:text-base font-bold text-slate-500"> (月平均 {salaryAvg})</span></div><div className="flex flex-wrap gap-2 text-xs sm:text-sm font-bold text-slate-600"><span className="bg-orange-50 text-orange-700 px-2.5 py-1 rounded-lg border border-orange-100">{bonusTag}</span><span className="flex items-center gap-1 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100"><CheckCircle size={14} className="text-green-500" /> {qualTag}</span></div></div><div className="flex-1 w-full bg-slate-50 border border-slate-100 rounded-xl p-4"><h4 className="font-bold text-slate-700 mb-2 flex items-center gap-2 text-sm"><div className="p-1 bg-purple-100 text-purple-600 rounded"><Briefcase size={14} /></div> 仕事内容</h4><p className="text-xs text-slate-600 leading-relaxed font-medium">{description}</p></div></div><div className="grid md:grid-cols-2 gap-6 md:gap-10 text-sm"><div><h4 className="font-bold text-slate-700 mb-3 flex items-center gap-1 text-base"><CreditCard size={16} className="text-blue-500" /> 給与内訳</h4><ul className="space-y-2 text-slate-600 mb-4"><li className="flex justify-between items-center border-b border-slate-100 pb-1"><span>基本給</span><div className="flex items-center gap-1 w-36 justify-end"><span className="font-bold tabular-nums">{parseSalary(baseSalary).amount}</span><span className="text-red-500 text-xs font-bold w-6 text-center">※1</span></div></li><li className="flex justify-between items-center border-b border-slate-100 pb-1"><span>処遇改善</span><div className="flex items-center gap-1 w-36 justify-end"><span className="font-bold tabular-nums">{parseSalary(benefit).amount}</span><span className="text-slate-400 text-xs font-bold w-6 text-center">{parseSalary(benefit).suffix}</span></div></li><li className="flex justify-between items-center border-b border-slate-100 pb-1"><span>固定残業(30h)</span><div className="flex items-center gap-1 w-36 justify-end"><span className="font-bold tabular-nums">{parseSalary(fixedOvertime).amount}</span><span className="text-slate-400 text-xs font-bold w-6 text-center">{parseSalary(fixedOvertime).suffix}</span></div></li><li className="flex justify-between items-center border-b border-slate-100 pb-1"><span>皆勤手当</span><div className="flex items-center gap-1 w-36 justify-end"><span className="font-bold tabular-nums">{parseSalary(attendance).amount}</span><span className="text-slate-400 text-xs font-bold w-6 text-center">{parseSalary(attendance).suffix}</span></div></li><li className="flex justify-between items-center border-b border-slate-100 pb-1"><span>移動手当</span><div className="flex items-center gap-1 w-36 justify-end"><span className="font-bold tabular-nums">{parseSalary(transport).amount}</span><span className="text-red-500 text-xs font-bold w-6 text-center">※2</span></div></li></ul><p className="font-bold text-slate-400 mb-2 text-xs">各種手当</p><div className="grid grid-cols-1 gap-1.5 text-xs font-medium text-slate-600 mb-4"><p>・資格手当: {qualAllowance}</p><p>・勤続手当: {tenureAllowance}</p><p>・役職手当: {positionAllowance}</p><p>・残業手当: {overtimeAllowance}</p><p>・夜朝手当: {nightAllowance}</p><p>・日曜手当: {sundayAllowance}</p></div><div className="space-y-1.5 border-t border-slate-100 pt-2"><p className="text-xs font-bold text-slate-500 flex gap-1"><span className="text-red-500 shrink-0">※1</span> {getValue('基本給注記', '半年の試用期間は140,000円')}</p><p className="text-xs font-bold text-slate-500 flex gap-1"><span className="text-red-500 shrink-0">※2</span> {getValue('移動手当注記') || getValue('通勤手当注記', '持ち込み（会社から借りない）バイクの場合は10,000円')}</p></div></div><div className="flex flex-col gap-8"><div><h4 className="font-bold text-slate-700 mb-3 flex items-center gap-1 text-base"><Clock size={16} className="text-green-500" /> 勤務・休日</h4><div className="space-y-4"><div className="bg-slate-50 p-3 rounded border border-slate-100"><span className="block font-bold text-slate-700 text-sm">{workingHours}</span><span className="text-xs text-slate-400 mt-1 block">月間総労働: {laborHours}</span></div><ul className="space-y-2 text-slate-600"><li className="flex items-center gap-1.5"><Calendar size={14} className="text-orange-400" /> {holidays}</li><li className="pl-5 text-xs">{paidLeave}</li></ul></div></div><div><h4 className="font-bold text-slate-700 mb-3 text-base flex items-center gap-1"><Gift size={16} className="text-orange-500" /> 福利厚生</h4><div className="flex flex-wrap gap-2 mb-4">{welfareTags.map(tag => (<span key={tag} className="text-xs font-bold bg-orange-50 text-orange-600 px-2.5 py-1 rounded border border-orange-100">{tag.trim()}</span>))}</div><div className="mt-4 bg-orange-100/50 border border-orange-200 rounded-xl p-4"><h5 className="font-bold text-orange-700 text-sm mb-2 flex items-center gap-2"><Utensils size={16} /> 軽食・飲料 無料提供</h5><p className="text-xs text-slate-700 font-medium mb-3 leading-relaxed">{foodText}</p><p className="text-orange-500 font-bold text-xs">※お弁当、パン、時にはマックやミスドも！？</p></div></div></div></div><div className="mt-8 pt-6 border-t border-slate-100 text-center"><button onClick={onClose} className="text-sm font-bold text-slate-400 hover:text-orange-500 flex items-center justify-center gap-1 mx-auto transition-colors">閉じる <ChevronRight size={14} className="rotate-90" /></button></div></div></div>
+                <div id="job-detail-card" className="scroll-mt-32 max-w-3xl mx-auto mt-8 mb-16 rounded-2xl overflow-hidden shadow-2xl border border-white/60 bg-white/95 backdrop-blur-xl animate-[popup_0.5s_cubic-bezier(0.22,1,0.36,1)_forwards]"><style>{`@keyframes popup { 0% { transform: scale(0.9); opacity: 0; } 60% { transform: scale(1.02); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }`}</style><div className="bg-slate-100/90 border-b border-slate-200 px-4 py-3 flex items-center justify-between shrink-0"><div className="flex gap-1.5 cursor-pointer" onClick={onClose} title="閉じる"><div className="w-3 h-3 rounded-full bg-[#FF5F57] shadow-sm hover:bg-[#FF5F57]/80 transition-colors flex items-center justify-center group"><X size={8} className="text-black/50 opacity-0 group-hover:opacity-100" /></div><div className="w-3 h-3 rounded-full bg-[#FEBC2E] shadow-sm"></div><div className="w-3 h-3 rounded-full bg-[#28C840] shadow-sm"></div></div><div className="text-xl font-bold text-slate-700 flex items-center gap-1"><Briefcase size={18} /> 正社員</div><div className="w-10 text-right"><button onClick={onClose} className="text-xs font-bold text-slate-400 hover:text-slate-600">CLOSE</button></div></div><div className="p-6 md:p-8"><div className="flex flex-col md:flex-row items-start justify-between gap-6 border-b border-slate-100 pb-6 mb-6"><div className="w-full md:w-auto"><div className="flex flex-wrap items-baseline gap-2 mb-2"><span className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-800 tracking-tight">{salary}</span><span className="text-sm sm:text-base font-bold text-slate-500"> (月平均 {salaryAvg})</span></div><div className="flex flex-wrap gap-2 text-xs sm:text-sm font-bold text-slate-600"><span className="bg-orange-50 text-orange-700 px-2.5 py-1 rounded-lg border border-orange-100">{bonusTag}</span><span className="flex items-center gap-1 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100"><CheckCircle size={14} className="text-green-500" /> {qualTag}</span></div><div className="mt-3 inline-flex items-center gap-1.5 bg-blue-50 border border-blue-100 rounded-lg px-2.5 py-1"><MapPin size={13} className="text-blue-500" /><span className="text-xs font-bold text-blue-700">現場直行直帰可能！</span></div></div><div className="flex-1 w-full bg-slate-50 border border-slate-100 rounded-xl p-4"><h4 className="font-bold text-slate-700 mb-2 flex items-center gap-2 text-sm"><div className="p-1 bg-purple-100 text-purple-600 rounded"><Briefcase size={14} /></div> 仕事内容</h4><p className="text-xs text-slate-600 leading-relaxed font-medium">{description}</p></div></div><div className="grid md:grid-cols-2 gap-6 md:gap-10 text-sm"><div><h4 className="font-bold text-slate-700 mb-3 flex items-center gap-1 text-base"><CreditCard size={16} className="text-blue-500" /> 給与内訳</h4><ul className="space-y-2 text-slate-600 mb-4"><li className="flex justify-between items-center border-b border-slate-100 pb-1"><span>基本給</span><div className="flex items-center gap-1 w-36 justify-end"><span className="font-bold tabular-nums">{parseSalary(baseSalary).amount}</span><span className="text-red-500 text-xs font-bold w-6 text-center">※1</span></div></li><li className="flex justify-between items-center border-b border-slate-100 pb-1"><span>処遇改善</span><div className="flex items-center gap-1 w-36 justify-end"><span className="font-bold tabular-nums">{parseSalary(benefit).amount}</span><span className="text-slate-400 text-xs font-bold w-6 text-center">{parseSalary(benefit).suffix}</span></div></li><li className="flex justify-between items-center border-b border-slate-100 pb-1"><span>固定残業(30h)</span><div className="flex items-center gap-1 w-36 justify-end"><span className="font-bold tabular-nums">{parseSalary(fixedOvertime).amount}</span><span className="text-slate-400 text-xs font-bold w-6 text-center">{parseSalary(fixedOvertime).suffix}</span></div></li><li className="flex justify-between items-center border-b border-slate-100 pb-1"><span>皆勤手当</span><div className="flex items-center gap-1 w-36 justify-end"><span className="font-bold tabular-nums">{parseSalary(attendance).amount}</span><span className="text-slate-400 text-xs font-bold w-6 text-center">{parseSalary(attendance).suffix}</span></div></li><li className="flex justify-between items-center border-b border-slate-100 pb-1"><span>移動手当</span><div className="flex items-center gap-1 w-36 justify-end"><span className="font-bold tabular-nums">{parseSalary(transport).amount}</span><span className="text-red-500 text-xs font-bold w-6 text-center">※2</span></div></li></ul><p className="font-bold text-slate-400 mb-2 text-xs">各種手当</p><div className="grid grid-cols-1 gap-1.5 text-xs font-medium text-slate-600 mb-4"><p>・資格手当: {qualAllowance}</p><p>・勤続手当: {tenureAllowance}</p><p>・役職手当: {positionAllowance}</p><p>・残業手当: {overtimeAllowance}</p><p>・夜朝手当: {nightAllowance}</p><p>・日曜手当: {sundayAllowance}</p></div><div className="space-y-1.5 border-t border-slate-100 pt-2"><p className="text-xs font-bold text-slate-500 flex gap-1"><span className="text-red-500 shrink-0">※1</span> {getValue('基本給注記', '半年の試用期間は140,000円')}</p><p className="text-xs font-bold text-slate-500 flex gap-1"><span className="text-red-500 shrink-0">※2</span> {getValue('移動手当注記') || getValue('通勤手当注記', '持ち込み（会社から借りない）バイクの場合は10,000円')}</p></div></div><div className="flex flex-col gap-8"><div><h4 className="font-bold text-slate-700 mb-3 flex items-center gap-1 text-base"><Clock size={16} className="text-green-500" /> 勤務・休日</h4><div className="space-y-4"><div className="bg-slate-50 p-3 rounded border border-slate-100"><span className="block font-bold text-slate-700 text-sm">{workingHours}</span><span className="text-xs text-slate-400 mt-1 block">月間総労働: {laborHours}</span></div><ul className="space-y-2 text-slate-600"><li className="flex items-center gap-1.5"><Calendar size={14} className="text-orange-400" /> {holidays}</li><li className="pl-5 text-xs">{paidLeave}</li></ul></div></div><div><h4 className="font-bold text-slate-700 mb-3 text-base flex items-center gap-1"><Gift size={16} className="text-orange-500" /> 福利厚生</h4><div className="flex flex-wrap gap-2 mb-4">{welfareTags.map(tag => (<span key={tag} className="text-xs font-bold bg-orange-50 text-orange-600 px-2.5 py-1 rounded border border-orange-100">{tag.trim()}</span>))}</div><div className="mt-4 bg-orange-100/50 border border-orange-200 rounded-xl p-4"><h5 className="font-bold text-orange-700 text-sm mb-2 flex items-center gap-2"><Utensils size={16} /> 軽食・飲料 無料提供</h5><p className="text-xs text-slate-700 font-medium mb-3 leading-relaxed">{foodText}</p><p className="text-orange-500 font-bold text-xs">※お弁当、パン、時にはマックやミスドも！？</p></div></div></div></div><div className="mt-8 pt-6 border-t border-slate-100 text-center"><button onClick={onClose} className="text-sm font-bold text-slate-400 hover:text-orange-500 flex items-center justify-center gap-1 mx-auto transition-colors">閉じる <ChevronRight size={14} className="rotate-90" /></button></div></div></div>
             );
         };
 
@@ -750,7 +749,7 @@ import './index.css';
                                 const val = getValue(`福利厚生${i}`);
                                 return val ? <li key={i} className="flex items-start gap-2"><CheckCircle size={14} className="text-orange-400 mt-0.5 shrink-0" /> {val}</li> : null;
                             })}
-                        </ul><div className="mt-4 bg-orange-100/50 border border-orange-200 rounded-xl p-4"><h5 className="font-bold text-orange-700 text-sm mb-2 flex items-center gap-2"><Utensils size={16} /> 軽食・飲料 無料提供</h5><p className="text-xs text-slate-700 font-medium leading-relaxed mb-2">{foodText}</p><p className="text-orange-500 font-bold text-xs">※お弁当、パン、時にはマックやミスドも！？</p></div></div></div><div className="flex flex-col h-full"><h4 className="font-bold text-slate-700 mb-3 flex items-center gap-1 text-lg"><Coins size={18} className="text-orange-500" /> 各種手当・加算詳細</h4><div className="space-y-5 text-sm font-medium text-slate-600 bg-slate-50/50 p-5 rounded-2xl border border-slate-100 flex-grow shadow-sm">
+                        </ul><div className="mt-4 bg-orange-100/50 border border-orange-200 rounded-xl p-4"><h5 className="font-bold text-orange-700 text-sm mb-2 flex items-center gap-2"><Utensils size={16} /> 軽食・飲料 無料提供</h5><p className="text-xs text-slate-700 font-medium leading-relaxed mb-2">{foodText}</p><p className="text-orange-500 font-bold text-xs">※お弁当、パン、時にはマックやミスドも！？</p></div><div className="mt-4 bg-blue-50 border border-blue-200 rounded-xl p-4"><h5 className="font-bold text-blue-700 text-sm mb-2 flex items-center gap-2"><MapPin size={16} /> 現場直行直帰可能！</h5><p className="text-xs text-slate-700 font-medium leading-relaxed">事務所への出社は不要、ご自宅から直接現場へ向かい、業務後はそのままご帰宅いただけます。</p></div></div></div><div className="flex flex-col h-full"><h4 className="font-bold text-slate-700 mb-3 flex items-center gap-1 text-lg"><Coins size={18} className="text-orange-500" /> 各種手当・加算詳細</h4><div className="space-y-5 text-sm font-medium text-slate-600 bg-slate-50/50 p-5 rounded-2xl border border-slate-100 flex-grow shadow-sm">
                             {(qualificationsAllowanceNon || qualificationsAllowanceJoined) && <div className="border-b border-slate-200 pb-4"><p className="font-bold mb-2.5 text-base text-slate-800 bg-slate-100 inline-block px-2 py-0.5 rounded">資格手当 <span className="font-normal text-xs text-slate-500">(実務者研修以上)</span></p><ul className="pl-1 text-sm space-y-2 text-slate-600">
                                 {qualificationsAllowanceNon && <li className="flex justify-between items-center bg-white p-2.5 rounded border border-slate-100 shadow-sm"><span>社保非加入者</span> <span className="font-bold text-slate-800">{qualificationsAllowanceNon}</span></li>}
                                 {qualificationsAllowanceJoined && <li className="flex justify-between items-center bg-white p-2.5 rounded border border-slate-100 shadow-sm"><span>社保加入者</span> <span className="font-bold text-slate-800">{qualificationsAllowanceJoined}</span></li>}
@@ -830,7 +829,7 @@ import './index.css';
                                 return val ? <li key={i} className="flex items-start gap-2"><CheckCircle size={14} className="text-amber-400 mt-0.5 shrink-0" /> {val}</li> : null;
                             })}
                             <li className="flex items-start gap-2"><CheckCircle size={14} className="text-amber-400 mt-0.5 shrink-0" /> バイク・電動自転車貸出あり</li>
-                        </ul><div className="mt-4 bg-orange-100/50 border border-orange-200 rounded-xl p-4"><h5 className="font-bold text-orange-700 text-sm mb-2 flex items-center gap-2"><Utensils size={16} /> 軽食・飲料 無料提供</h5><p className="text-xs text-slate-700 font-medium leading-relaxed mb-2">{foodText}</p><p className="text-orange-500 font-bold text-xs">※お弁当、パン、時にはマックやミスドも！？</p></div></div></div><div className="flex flex-col h-full"><h4 className="font-bold text-slate-700 mb-3 flex items-center gap-1 text-lg"><Coins size={18} className="text-amber-500" /> 各種手当・加算詳細</h4><div className="space-y-5 text-sm font-medium text-slate-600 bg-slate-50/50 p-5 rounded-2xl border border-slate-100 flex-grow shadow-sm">
+                        </ul><div className="mt-4 bg-orange-100/50 border border-orange-200 rounded-xl p-4"><h5 className="font-bold text-orange-700 text-sm mb-2 flex items-center gap-2"><Utensils size={16} /> 軽食・飲料 無料提供</h5><p className="text-xs text-slate-700 font-medium leading-relaxed mb-2">{foodText}</p><p className="text-orange-500 font-bold text-xs">※お弁当、パン、時にはマックやミスドも！？</p></div><div className="mt-4 bg-blue-50 border border-blue-200 rounded-xl p-4"><h5 className="font-bold text-blue-700 text-sm mb-2 flex items-center gap-2"><MapPin size={16} /> 現場直行直帰可能！</h5><p className="text-xs text-slate-700 font-medium leading-relaxed">事務所への出社は不要、ご自宅から直接現場へ向かい、業務後はそのままご帰宅いただけます。</p></div></div></div><div className="flex flex-col h-full"><h4 className="font-bold text-slate-700 mb-3 flex items-center gap-1 text-lg"><Coins size={18} className="text-amber-500" /> 各種手当・加算詳細</h4><div className="space-y-5 text-sm font-medium text-slate-600 bg-slate-50/50 p-5 rounded-2xl border border-slate-100 flex-grow shadow-sm">
                             {qualificationsAllowance && <div className="border-b border-slate-200 pb-4"><p className="font-bold mb-2.5 text-base text-slate-800 bg-slate-100 inline-block px-2 py-0.5 rounded">資格手当 <span className="font-normal text-xs text-slate-500">(実務者研修以上)</span></p><div className="bg-white p-2.5 rounded border border-slate-100 shadow-sm"><span className="font-bold text-slate-800">{qualificationsAllowance}</span></div></div>}
                             {(tenureAllowance1 || tenureAllowance2) && <div className="border-b border-slate-200 pb-4"><p className="font-bold mb-2.5 text-base text-slate-800 bg-slate-100 inline-block px-2 py-0.5 rounded">勤続手当 (時給)</p><ul className="pl-1 text-sm space-y-1.5 text-slate-600">
                                 {tenureAllowance1 && <li className="flex justify-between items-center"><span>1年目〜5年目</span> <span className="font-bold text-slate-800 text-amber-600">{tenureAllowance1}</span></li>}
@@ -1860,6 +1859,35 @@ import './index.css';
                 return item ? String(item.value) : defaultValue;
             };
 
+            // 年齢分布データを取得（スプシ category: 年齢分布_社員 / 年齢分布_ヘルパー、key: 10代〜70代）
+            const getAgeDistribution = () => {
+                const ageGroups = ['10代', '20代', '30代', '40代', '50代', '60代', '70代'];
+                const defaults = {
+                    '社員':   { '10代': 0, '20代': 12, '30代': 8,  '40代': 5,  '50代': 11, '60代': 3,  '70代': 0 },
+                    'ヘルパー': { '10代': 3, '20代': 12, '30代': 13, '40代': 14, '50代': 27, '60代': 20, '70代': 5 },
+                };
+                const pick = (type, age) => {
+                    const v = getStat(`年齢分布_${type}`, age);
+                    return (v === null || v === undefined || v === '') ? defaults[type][age] : Number(v);
+                };
+                return ageGroups.map(age => ({
+                    age,
+                    employee: pick('社員', age),
+                    helper: pick('ヘルパー', age),
+                }));
+            };
+
+            // 登録ヘルパー給与分布データを取得（スプシ category: 給与分布_ヘルパー、key: ~5万 / 5万~10万 / 10万~20万 / 20万~30万 / 30万~）
+            const getHelperSalaryDistribution = () => {
+                const brackets = ['~5万', '5万~10万', '10万~20万', '20万~30万', '30万~'];
+                const defaults = { '~5万': 9, '5万~10万': 25, '10万~20万': 35, '20万~30万': 12, '30万~': 1 };
+                return brackets.map(bracket => {
+                    const v = getStat('給与分布_ヘルパー', bracket);
+                    const count = (v === null || v === undefined || v === '') ? defaults[bracket] : Number(v);
+                    return { bracket, count };
+                });
+            };
+
             const renderCurrentView = () => {
                 switch (view) {
                     case 'news': return <NewsPage newsData={newsData} />;
@@ -1882,14 +1910,16 @@ import './index.css';
                                     {/* スマホ・タブレット: 縦並び / PC(lg以上): 横並び */}
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch mb-8">
                                         {/* スライダー */}
-                                        <div className="aspect-[16/9] lg:aspect-auto lg:h-full rounded-3xl overflow-hidden shadow-lg bg-slate-200">
-                                            {dataLoading ? (
-                                                <div className="w-full h-full bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 animate-pulse flex items-center justify-center">
-                                                    <div className="text-slate-300"><ImageIcon size={48} /></div>
-                                                </div>
-                                            ) : (
-                                                <PhotoSlider sliderData={sliderData} />
-                                            )}
+                                        <div className="relative w-full h-0 pb-[56.25%] lg:pb-0 lg:h-full rounded-3xl overflow-hidden shadow-lg bg-slate-200">
+                                            <div className="absolute inset-0 w-full h-full">
+                                                {dataLoading ? (
+                                                    <div className="w-full h-full bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 animate-pulse flex items-center justify-center">
+                                                        <div className="text-slate-300"><ImageIcon size={48} /></div>
+                                                    </div>
+                                                ) : (
+                                                    <PhotoSlider sliderData={sliderData} />
+                                                )}
+                                            </div>
                                         </div>
                                         {/* Recruit セクション - スマホ:縦1列 / タブレット:2列 / PC:2x2グリッド */}
                                         <div className="flex flex-col gap-3 lg:gap-0">
@@ -1947,164 +1977,222 @@ import './index.css';
                                         </div>
                                     </div>
 
-                                    {/* 訪問エリア & 数字で見る Section */}
-                                    <div className="grid md:grid-cols-2 gap-6 items-start mt-8">
-                                        {/* 訪問エリア (Left) */}
-                                        <div className="flex flex-col gap-4">
-                                            <div className="flex items-center justify-between px-1">
+                                    {/* 訪問エリア & 数字で見る Section - グリッドで上下を揃える */}
+                                    <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {/* --- 左カラム 上部 (訪問エリア) --- */}
+                                        <div className="flex flex-col gap-4 md:col-start-1 md:row-start-1">
+                                            {/* 見出し */}
+                                            <div className="flex items-center justify-between px-1 shrink-0">
                                                 <h2 className="text-2xl font-black text-slate-900 tracking-tight"><GradientText>訪問エリア</GradientText></h2>
                                             </div>
-                                            <div className="space-y-3">
-                                                {/* エリア詳細リスト */}
-                                                <div className="bg-white rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-white/50 overflow-hidden">
-                                                    {[
-                                                        { area: '東大阪市', badge: '中心エリア', badgeColor: 'bg-orange-500', desc: '事業所から近く、訪問件数も豊富です。' },
-                                                        { area: '八尾市', badge: '積極採用エリア', badgeColor: 'bg-orange-400', desc: (<>ニーズが高く、スタッフを募集中です！</>)},
-                                                        { area: '大東市', badge: null, badgeColor: null, desc: '事業所からのアクセス良好です。' },
-                                                        { area: '鶴見区（大阪市）', badge: null, badgeColor: null, desc: '大阪市内の訪問も一部対応しています。' },
-                                                        { area: '門真市', badge: null, badgeColor: null, desc: '生活圏に合わせたシフト調整が可能です。' },
-                                                        { area: '四條畷市', badge: null, badgeColor: null, desc: '落ち着いたエリアでの訪問が中心です。' },
-                                                        { area: '寝屋川市', badge: null, badgeColor: null, desc: '直行直帰もOK！効率よく働けます。' },
-                                                    ].map((item, idx) => (
-                                                        <div key={idx} className={`flex items-center gap-3 px-4 py-3 ${idx !== 6 ? 'border-b border-slate-50' : ''} hover:bg-orange-50/30 transition-colors`}>
-                                                            <MapPin size={16} className="text-orange-400 shrink-0" />
-                                                            <div className="flex-1 min-w-0">
-                                                                <div className="flex items-center gap-2 flex-wrap">
-                                                                    <span className="text-sm font-black text-slate-800">{item.area}</span>
-                                                                    {item.badge && (
-                                                                        <span className={`${item.badgeColor} text-white text-[10px] font-bold px-2 py-0.5 rounded-full`}>{item.badge}</span>
-                                                                    )}
-                                                                </div>
-                                                                <p className="text-xs text-slate-500 font-medium mt-0.5">{item.desc}</p>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                    <div className="px-4 py-2 bg-slate-50/50">
-                                                        <p className="text-[10px] text-slate-400 font-medium">※上記エリア以外でもご相談いただけますので、お気軽にお問い合わせください。</p>
-                                                    </div>
-                                                </div>
-
-                                                {/* エリアマップ画像 */}
-                                                <div className="rounded-2xl shadow-lg overflow-hidden">
-                                                    <img src="area_map.png" alt="訪問エリアマップ - 事業所から車で20分圏内が中心です" className="w-full h-auto" loading="lazy" />
-                                                </div>
+                                            {/* area_map.png - 画像の元サイズに引きずられないよう md:absolute を付与し、右カラムの高さと完全に連動させ下端を揃える */}
+                                            <div className="flex-1 w-full bg-white rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-slate-100/50 overflow-hidden md:relative min-h-[300px]">
+                                                <img src="/area_map.png" alt="訪問エリアマップ - 東大阪・八尾・門真を中心に8エリアで訪問しています" className="w-full h-full md:absolute md:inset-0 object-contain object-top" loading="lazy" />
                                             </div>
                                         </div>
-
-                                        {/* 数字で見る (Right) */}
-                                        <div className="flex flex-col gap-3">
-                                            <div className="flex items-center justify-between px-1">
-                                                <h2 className="text-2xl font-black text-slate-900 tracking-tight"><GradientText>数字で見る</GradientText></h2>
-                                                <span className="text-[10px] font-bold text-slate-400">毎月月初に更新</span>
-                                            </div>
-                                            <div className="space-y-2.5">
-                                                {/* 平均年収 + 特徴カード */}
-                                                <div className="grid grid-cols-3 gap-2.5">
-                                                    <div className="col-span-2 bg-white/80 backdrop-blur-sm px-4 py-3 rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-white/50">
-                                                        <div className="flex items-center gap-2 mb-0.5">
-                                                            <div className="p-1 bg-slate-50 rounded-xl"><Coins size={16} style={{ stroke: "url(#gold-gradient)" }} /></div>
-                                                            <span className="font-bold text-xs tracking-wider text-slate-400 uppercase">社員の平均年収</span>
-                                                        </div>
-                                                        <div className="flex items-end justify-between">
-                                                            <div className="flex items-baseline gap-1.5">
-                                                                <span className="text-7xl font-black tracking-tighter leading-none"><GradientText>{getNumericStat('平均年収', '600')}</GradientText></span>
-                                                                <span className="text-2xl font-bold text-slate-400">万円</span>
-                                                            </div>
-                                                            <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-lg mb-2">{getNumericStat('平均年収注釈', '※業界平均 350〜400万円')}</span>
+                                        {/* --- 左カラム 下部 (スタッフに選ばれる理由) --- */}
+                                        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-white/50 p-5 md:p-6 flex flex-col h-full md:col-start-1 md:row-start-2">
+                                                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+                                                    <div className="p-1.5 bg-slate-50 rounded-xl"><Users size={20} className="text-slate-600" /></div>
+                                                    <h3 className="text-base md:text-lg font-black text-slate-800">スタッフに選ばれる理由</h3>
+                                                </div>
+                                                <div className="flex-1 flex flex-col justify-around py-1">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="shrink-0 w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center"><CheckCircle size={14} className="text-orange-500" /></div>
+                                                        <p className="text-[13px] xl:text-sm font-bold text-slate-800 tracking-tight leading-snug">{getNumericStat('選ばれる理由1', '自宅から通いやすいエリアで配属')}</p>
+                                                        <div className="ml-auto shrink-0">
+                                                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
                                                         </div>
                                                     </div>
-                                                    <div className="bg-white rounded-2xl p-3 shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-white/50 text-center hover:shadow-md transition-all flex flex-col items-center justify-center">
-                                                        <div className="w-8 h-8 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-2">
-                                                            <Home size={16} className="text-orange-500" />
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="shrink-0 w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center"><CheckCircle size={14} className="text-orange-500" /></div>
+                                                        <p className="text-[13px] xl:text-sm font-bold text-slate-800 tracking-tight leading-snug">{getNumericStat('選ばれる理由2', '直行直帰OKで移動時間を削減')}</p>
+                                                        <div className="ml-auto shrink-0">
+                                                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><path d="M5 17h14" /><path d="M6 17H4a1 1 0 0 1-1-1v-3a1 1 0 0 1 .4-.8l3.1-2.3A1 1 0 0 1 7.1 10h4.4a1 1 0 0 1 .7.3l2.8 2.8a1 1 0 0 0 .7.3H19a2 2 0 0 1 2 2v.7a1 1 0 0 1-1 1h-1" /><circle cx="7.5" cy="17" r="2" /><circle cx="16.5" cy="17" r="2" /></svg>
                                                         </div>
-                                                        <p className="text-[11px] font-bold text-slate-500 leading-tight">自宅から近いエリアで</p>
-                                                        <p className="text-sm font-black text-slate-800 mt-0.5">無理なく働ける</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="shrink-0 w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center"><CheckCircle size={14} className="text-orange-500" /></div>
+                                                        <p className="text-[13px] xl:text-sm font-bold text-slate-800 tracking-tight leading-snug">{getNumericStat('選ばれる理由3', '車・自転車・バイク通勤OK')}</p>
+                                                        <div className="ml-auto shrink-0">
+                                                            <Bike size={28} className="text-slate-400" style={{ strokeWidth: 1.5 }} />
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="shrink-0 w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center"><CheckCircle size={14} className="text-orange-500" /></div>
+                                                        <p className="text-[13px] xl:text-sm font-bold text-slate-800 tracking-tight leading-snug">{getNumericStat('選ばれる理由4', '希望休・シフト相談しやすい環境')}</p>
+                                                        <div className="ml-auto shrink-0">
+                                                            <Calendar size={28} className="text-slate-400" style={{ strokeWidth: 1.5 }} />
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                {/* 男女比率（2/3幅） */}
-                                                <div className="grid grid-cols-3 gap-2.5">
-                                                    <div className="col-span-2 bg-white/80 backdrop-blur-sm p-4 rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-white/50">
-                                                        <div className="flex items-center gap-2 mb-2">
-                                                            <div className="p-1 bg-slate-50 rounded-xl"><Users size={16} style={{ stroke: "url(#purple-gradient)" }} /></div>
-                                                            <h4 className="text-sm font-bold text-slate-500">男女比率</h4>
+                                            </div>
+
+                                        {/* --- 右カラム 上部 (数字で見る Stats) --- */}
+                                        <div className="flex flex-col gap-4 md:col-start-2 md:row-start-1">
+                                            {/* 見出し */}
+                                            <div className="flex items-center justify-between px-1">
+                                                <h2 className="text-2xl font-black text-slate-900 tracking-tight"><GradientText>数字で見る</GradientText></h2>
+                                                <span className="text-xs font-bold text-slate-400">毎月月初に更新</span>
+                                            </div>
+                                                {/* 平均年収（全幅） - 全体のバランスを取るため約95%サイズに微縮小 */}
+                                                <div className="bg-white/80 backdrop-blur-sm px-4 py-3 md:px-5 md:py-4 rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-white/50">
+                                                    <div className="flex items-center gap-2 mb-1.5">
+                                                        <div className="p-1 bg-slate-50 rounded-lg"><Coins size={14} style={{ stroke: "url(#gold-gradient)" }} /></div>
+                                                        <span className="font-bold text-[10px] md:text-[11px] tracking-wider text-slate-500 uppercase">社員の平均年収</span>
+                                                    </div>
+                                                    <div className="flex items-end justify-between">
+                                                        <div className="flex items-baseline gap-1">
+                                                            <span className="text-5xl md:text-6xl lg:text-[4.2rem] font-black tracking-tighter leading-none"><GradientText>{getNumericStat('平均年収', '631')}</GradientText></span>
+                                                            <span className="text-base md:text-lg font-bold text-slate-400">万円</span>
                                                         </div>
-                                                        <div className="space-y-2.5">
-                                                            <div>
-                                                                <div className="flex justify-between text-xs font-bold text-slate-700 mb-1"><span>社員</span><span>男{getGenderRatio('社員').male} : 女{getGenderRatio('社員').female}</span></div>
-                                                                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden flex"><div style={{ width: `${getGenderRatio('社員').male}%` }} className="bg-orange-400"></div><div style={{ width: `${getGenderRatio('社員').female}%` }} className="bg-slate-800"></div></div>
-                                                            </div>
-                                                            <div>
-                                                                <div className="flex justify-between text-xs font-bold text-slate-700 mb-1"><span>登録ヘルパー</span><span>男{getGenderRatio('ヘルパー').male} : 女{getGenderRatio('ヘルパー').female}</span></div>
-                                                                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden flex"><div style={{ width: `${getGenderRatio('ヘルパー').male}%` }} className="bg-orange-400"></div><div style={{ width: `${getGenderRatio('ヘルパー').female}%` }} className="bg-slate-800"></div></div>
-                                                            </div>
+                                                        <span className="text-[9px] md:text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md mb-1">{getNumericStat('平均年収注釈', '※2025年度 途中入社、役員を除く')}</span>
+                                                    </div>
+                                                </div>
+                                                {/* 男女比率（全幅） */}
+                                                <div className="bg-white/80 backdrop-blur-sm px-5 py-4 md:px-6 md:py-5 rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-white/50">
+                                                    <div className="flex items-center gap-2 mb-3">
+                                                        <div className="p-1 bg-slate-50 rounded-lg"><Users size={16} style={{ stroke: "url(#purple-gradient)" }} /></div>
+                                                        <h4 className="text-sm font-bold text-slate-500">男女比率</h4>
+                                                    </div>
+                                                    <div className="space-y-4">
+                                                        <div>
+                                                            <div className="flex justify-between text-sm font-bold text-slate-700 mb-1.5"><span>社員</span><span>男{getGenderRatio('社員').male} : 女{getGenderRatio('社員').female}</span></div>
+                                                            <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden flex"><div style={{ width: `${getGenderRatio('社員').male}%` }} className="bg-orange-400"></div><div style={{ width: `${getGenderRatio('社員').female}%` }} className="bg-slate-800"></div></div>
+                                                        </div>
+                                                        <div>
+                                                            <div className="flex justify-between text-sm font-bold text-slate-700 mb-1.5"><span>登録ヘルパー</span><span>男{getGenderRatio('ヘルパー').male} : 女{getGenderRatio('ヘルパー').female}</span></div>
+                                                            <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden flex"><div style={{ width: `${getGenderRatio('ヘルパー').male}%` }} className="bg-orange-400"></div><div style={{ width: `${getGenderRatio('ヘルパー').female}%` }} className="bg-slate-800"></div></div>
                                                         </div>
                                                     </div>
                                                 </div>
                                                 {/* 従業員数 & 利用者数 & バイク台数 */}
-                                                <div className="grid grid-cols-3 gap-2.5">
-                                                    <StatCard icon={Users} title="従業員数" value={getNumericStat('従業員数', '127')} unit="名" gradientId="purple-gradient" />
+                                                <div className="grid grid-cols-3 gap-3">
+                                                    <StatCard icon={Users} title="従業員数" value={getNumericStat('従業員数', '127')} unit="名" subText={getNumericStat('従業員数注釈', '※うち社員35名')} gradientId="purple-gradient" />
                                                     <StatCard icon={Accessibility} title="利用者数" value={getNumericStat('利用者数', '484')} unit="名" gradientId="blue-gradient" />
                                                     <StatCard icon={Bike} title="社用バイク" value={getNumericStat('バイク台数', '60')} unit="台" subText={getNumericStat('バイク内訳', '125cc 37台/電動自転車9台/他原付 17台')} gradientId="green-gradient" />
                                                 </div>
                                                 {/* 年齢分布（統合） */}
-                                                <div className="bg-white/80 backdrop-blur-sm p-4 rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-white/50">
-                                                    <div className="flex items-center justify-between mb-2">
+                                                <div className="bg-white/80 backdrop-blur-sm px-5 py-4 md:px-6 md:py-5 rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-white/50">
+                                                    <div className="flex items-center justify-between mb-3">
                                                         <div className="flex items-center gap-2">
-                                                            <div className="p-1 bg-slate-50 rounded-xl"><Users size={16} style={{ stroke: "url(#orange-gradient)" }} /></div>
+                                                            <div className="p-1 bg-slate-50 rounded-lg"><Users size={16} style={{ stroke: "url(#orange-gradient)" }} /></div>
                                                             <h4 className="text-sm font-bold text-slate-500">年齢分布</h4>
                                                         </div>
                                                         <div className="flex items-center gap-3">
-                                                            <div className="flex items-center gap-1"><div className="w-3 h-2 bg-orange-400 rounded-full"></div><span className="text-[10px] font-bold text-slate-500">社員</span></div>
-                                                            <div className="flex items-center gap-1"><div className="w-3 h-2 bg-slate-700 rounded-full"></div><span className="text-[10px] font-bold text-slate-500">ヘルパー</span></div>
+                                                            <div className="flex items-center gap-1.5"><div className="w-4 h-2.5 bg-orange-400 rounded-full"></div><span className="text-xs font-bold text-slate-500">社員</span></div>
+                                                            <div className="flex items-center gap-1.5"><div className="w-4 h-2.5 bg-slate-700 rounded-full"></div><span className="text-xs font-bold text-slate-500">ヘルパー</span></div>
                                                         </div>
                                                     </div>
-                                                    <div className="space-y-1.5">
-                                                        {[
-                                                            { age: '10代', employee: 0, helper: 3 },
-                                                            { age: '20代', employee: 12, helper: 12 },
-                                                            { age: '30代', employee: 8, helper: 13 },
-                                                            { age: '40代', employee: 5, helper: 14 },
-                                                            { age: '50代', employee: 11, helper: 27 },
-                                                            { age: '60代', employee: 3, helper: 20 },
-                                                            { age: '70代', employee: 0, helper: 5 },
-                                                        ].map((item, idx) => {
-                                                            const maxCount = 38;
+                                                    <div className="space-y-2.5">
+                                                        {(() => {
+                                                            const ageData = getAgeDistribution();
+                                                            const maxCount = Math.max(...ageData.flatMap(d => [d.employee, d.helper]), 1);
+                                                            return ageData.map((item, idx) => {
                                                             const empWidth = (item.employee / maxCount) * 100;
                                                             const helperWidth = (item.helper / maxCount) * 100;
                                                             return (
-                                                                <div key={idx} className="flex items-center gap-1.5">
-                                                                    <span className="text-[11px] font-bold text-slate-500 w-8 shrink-0">{item.age}</span>
-                                                                    <div className="w-2 h-2 rounded-full bg-slate-300 shrink-0"></div>
-                                                                    <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden flex">
+                                                                <div key={idx} className="flex items-center gap-2">
+                                                                    <span className="text-sm font-bold text-slate-500 w-8 shrink-0">{item.age}</span>
+                                                                    <div className="w-2.5 h-2.5 rounded-full bg-slate-300 shrink-0"></div>
+                                                                    <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden flex">
                                                                         {item.employee > 0 && <div className="h-full bg-orange-400" style={{ width: `${empWidth}%` }}></div>}
                                                                         {item.helper > 0 && <div className="h-full bg-slate-700" style={{ width: `${helperWidth}%` }}></div>}
                                                                     </div>
-                                                                    <span className="text-[10px] font-bold text-orange-500 w-6 text-right">{item.employee || '-'}</span>
-                                                                    <span className="text-[10px] font-bold text-slate-600 w-6 text-right">{item.helper}</span>
+                                                                    <span className="text-xs font-bold text-orange-500 w-7 text-right">{item.employee || '-'}</span>
+                                                                    <span className="text-xs font-bold text-slate-600 w-7 text-right">{item.helper}</span>
                                                                 </div>
                                                             );
-                                                        })}
+                                                            });
+                                                        })()}
                                                     </div>
                                                 </div>
-                                                {/* 2つの特徴カード */}
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    {[
-                                                        { icon: Clock, title: '直行直帰OKで', desc: '時間を有効活用' },
-                                                        { icon: Shield, title: '研修・サポート体制が', desc: '充実で安心！' },
-                                                    ].map((item, idx) => (
-                                                        <div key={idx} className="bg-white rounded-2xl p-3 shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-white/50 text-center hover:shadow-md transition-all">
-                                                            <div className="w-8 h-8 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-2">
-                                                                <item.icon size={16} className="text-orange-500" />
-                                                            </div>
-                                                            <p className="text-[11px] font-bold text-slate-500 leading-tight">{item.title}</p>
-                                                            <p className="text-sm font-black text-slate-800 mt-0.5">{item.desc}</p>
+
+                                                {/* 登録ヘルパー 給与分布 */}
+                                                <div className="bg-white/80 backdrop-blur-sm px-5 py-4 md:px-6 md:py-5 rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-white/50">
+                                                    <div className="flex items-center justify-between mb-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="p-1 bg-slate-50 rounded-lg"><Coins size={16} style={{ stroke: "url(#gold-gradient)" }} /></div>
+                                                            <h4 className="text-sm font-bold text-slate-500">登録ヘルパー 給与分布</h4>
                                                         </div>
-                                                    ))}
+                                                        <span className="text-xs font-bold text-slate-400">単位：名</span>
+                                                    </div>
+                                                    <div className="space-y-2.5">
+                                                        {(() => {
+                                                            const salaryData = getHelperSalaryDistribution();
+                                                            const maxCount = Math.max(...salaryData.map(d => d.count), 1);
+                                                            return salaryData.map((item, idx) => {
+                                                                const width = (item.count / maxCount) * 100;
+                                                                return (
+                                                                    <div key={idx} className="flex items-center gap-2">
+                                                                        <span className="text-sm font-bold text-slate-500 w-24 shrink-0">{item.bracket}</span>
+                                                                        <div className="w-2.5 h-2.5 rounded-full bg-slate-300 shrink-0"></div>
+                                                                        <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
+                                                                            <div className="h-full bg-gradient-to-r from-orange-400 to-orange-500" style={{ width: `${width}%` }}></div>
+                                                                        </div>
+                                                                        <span className="text-xs font-bold text-orange-500 w-8 text-right">{item.count}名</span>
+                                                                    </div>
+                                                                );
+                                                            });
+                                                        })()}
+                                                    </div>
                                                 </div>
-                                            </div>
+                                        </div>
+                                        {/* --- 右カラム 下部 (CTA Section) --- */}
+                                        {/* 訪問エリアの希望と電話で相談の部分は、それぞれ登録ヘルパー給与分布の半分の横幅（grid-cols-2） */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 h-full md:col-start-2 md:row-start-2">
+                                                    {/* 訪問エリアの希望も考慮します */}
+                                                    <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-white/50 p-5 md:p-6">
+                                                        <div className="text-center mb-5">
+                                                            <div className="inline-flex items-center gap-1 text-slate-400 text-xs font-bold">
+                                                                <span>\</span>
+                                                                <span className="text-[13px] xl:text-lg font-black text-slate-800 whitespace-nowrap tracking-tight">訪問エリアの希望も考慮します</span>
+                                                                <span>/</span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div className="flex flex-col items-center text-center gap-2">
+                                                                <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center"><MapPin size={24} className="text-orange-500" /></div>
+                                                                <p className="text-[10px] xl:text-xs font-bold text-slate-700 leading-tight">希望エリア<br />を考慮</p>
+                                                            </div>
+                                                            <div className="flex flex-col items-center text-center gap-2">
+                                                                <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center"><Clock size={24} className="text-orange-500" /></div>
+                                                                <p className="text-[10px] xl:text-xs font-bold text-slate-700 leading-tight">無理のない<br />移動距離</p>
+                                                            </div>
+                                                            <div className="flex flex-col items-center text-center gap-2">
+                                                                <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center"><Calendar size={24} className="text-orange-500" /></div>
+                                                                <p className="text-[10px] xl:text-xs font-bold text-slate-700 leading-tight">シフト調整<br />しやすい</p>
+                                                            </div>
+                                                            <div className="flex flex-col items-center text-center gap-2">
+                                                                <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center"><Heart size={24} className="text-orange-500" /></div>
+                                                                <p className="text-[10px] xl:text-xs font-bold text-slate-700 leading-tight">ブランク<br />復帰も安心</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    {/* 電話相談 & 面談応募 CTA */}
+                                                    <div className="flex flex-col gap-3">
+                                                        <a href="tel:06-6746-7800" className="flex-1 bg-white/90 backdrop-blur-sm rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-white/50 p-5 flex items-center gap-4 group hover:shadow-lg hover:border-orange-200 transition-all cursor-pointer">
+                                                            <div className="shrink-0 w-12 h-12 rounded-full bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-200"><PhoneCall size={22} className="text-white" /></div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-[10px] font-bold text-slate-400 mb-0.5">迷ったらとりあえず電話！</p>
+                                                                <p className="text-lg font-black text-slate-800 group-hover:text-orange-600 transition-colors">電話で相談する</p>
+                                                            </div>
+                                                            <ArrowRight size={20} className="text-slate-300 group-hover:text-orange-500 transition-colors shrink-0" />
+                                                        </a>
+                                                        <button onClick={() => navigateToRecruit(null)} className="flex-1 bg-slate-800 rounded-2xl shadow-lg shadow-slate-300 p-5 flex items-center gap-4 group hover:bg-slate-700 transition-all cursor-pointer text-left">
+                                                            <div className="shrink-0 w-12 h-12 rounded-full bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-900/30">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-[10px] font-bold text-slate-400 mb-0.5">まずはエリアの相談だけでもOK!</p>
+                                                                <p className="text-lg font-black text-white">面談に<span className="text-orange-400">応募する</span></p>
+                                                            </div>
+                                                            <ArrowRight size={20} className="text-white/50 group-hover:text-white transition-colors shrink-0" />
+                                                        </button>
+                                                    </div>
+                                                </div>
                                         </div>
                                     </div>
-                                </div>
                             </header>
                         </>
                     );
@@ -2149,4 +2237,5 @@ import './index.css';
             );
         };
 
-        export default App;
+        
+export default App;
