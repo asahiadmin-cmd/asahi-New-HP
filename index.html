@@ -2342,14 +2342,16 @@
                                     {/* スマホ・タブレット: 縦並び / PC(lg以上): 横並び */}
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch mb-8">
                                         {/* スライダー */}
-                                        <div className="relative w-full lg:h-full rounded-3xl overflow-hidden shadow-lg bg-slate-200" style={{ paddingBottom: window.innerWidth >= 1024 ? '0' : '56.25%' }}>
-                                            {dataLoading ? (
-                                                <div className="w-full h-full bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 animate-pulse flex items-center justify-center">
-                                                    <div className="text-slate-300"><ImageIcon size={48} /></div>
-                                                </div>
-                                            ) : (
-                                                <PhotoSlider sliderData={sliderData} />
-                                            )}
+                                        <div className="relative w-full h-0 pb-[56.25%] lg:pb-0 lg:h-full rounded-3xl overflow-hidden shadow-lg bg-slate-200">
+                                            <div className="absolute inset-0 w-full h-full">
+                                                {dataLoading ? (
+                                                    <div className="w-full h-full bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 animate-pulse flex items-center justify-center">
+                                                        <div className="text-slate-300"><ImageIcon size={48} /></div>
+                                                    </div>
+                                                ) : (
+                                                    <PhotoSlider sliderData={sliderData} />
+                                                )}
+                                            </div>
                                         </div>
                                         {/* Recruit セクション - スマホ:縦1列 / タブレット:2列 / PC:2x2グリッド */}
                                         <div className="flex flex-col gap-3 lg:gap-0">
