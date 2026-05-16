@@ -893,6 +893,14 @@
         const PhotoSlider = ({ sliderData = [] }) => {
             const [currentIndex, setCurrentIndex] = useState(0);
             const images = sliderData.length > 0 ? sliderData : DEFAULT_DATA.slider;
+            // デバッグ: スライダー画像URLを確認
+            console.log('[SLIDER DEBUG] 画像データ:', images.map((img, i) => ({
+                index: i,
+                raw_url: img.url_pc || img.url || '(なし)',
+                converted_url: getImageUrl(img, 'url_pc', 'url_mobile', 'url'),
+                label: img.label
+            })));
+            console.log('[SLIDER DEBUG] viewport幅:', window.innerWidth, 'isMobile:', window.innerWidth < 768);
             useEffect(() => { const timer = setInterval(() => { setCurrentIndex((prev) => (prev + 1) % images.length); }, 5000); return () => clearInterval(timer); }, [images.length]);
             const nextSlide = () => setCurrentIndex((prev) => (prev + 1) % images.length);
             const prevSlide = () => setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
@@ -900,7 +908,13 @@
                 <div className="relative w-full aspect-video md:aspect-auto md:h-full rounded-3xl overflow-hidden shadow-xl border border-white/50 group">
                     {images.map((img, index) => (
                         <div key={index} className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentIndex ? 'opacity-100' : 'opacity-0'}`}>
-                            <img src={getImageUrl(img, 'url_pc', 'url_mobile', 'url')} alt={img.label} className="w-full h-full object-cover" />
+                            <img
+                                src={getImageUrl(img, 'url_pc', 'url_mobile', 'url')}
+                                alt={img.label}
+                                className="w-full h-full object-cover"
+                                onError={(e) => console.error('[SLIDER ERROR] 画像読み込み失敗:', e.target.src)}
+                                onLoad={(e) => console.log('[SLIDER OK] 画像読み込み成功:', e.target.src.substring(0, 80))}
+                            />
                             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-transparent to-transparent"></div>
                             <div className="absolute bottom-4 left-4 md:bottom-8 md:left-8 text-white transform transition-transform duration-700 translate-y-0">
                                 <span className="bg-white/20 backdrop-blur-md text-white text-[8px] md:text-[10px] font-bold px-2 md:px-3 py-1 rounded-full mb-2 md:mb-3 inline-block border border-white/30">Office View</span>
