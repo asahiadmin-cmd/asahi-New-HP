@@ -1,6 +1,118 @@
 import React, { useEffect, useRef, useState } from 'react';
 import './index.css';
 
+const VIEW_PATHS = {
+    home: '/',
+    news: '/news',
+    recruit: '/recruit',
+    company: '/company',
+    staff: '/staff',
+    facilities: '/facilities',
+    contact: '/contact',
+};
+
+const ROUTE_META = {
+    home: {
+        title: 'ライフサポートあさひ｜東大阪市の訪問介護 ヘルパー求人募集中',
+        description: '東大阪市の訪問介護事業所ライフサポートあさひ。正社員・登録ヘルパー積極採用中。未経験歓迎、早朝・夜間面接対応、最短翌日勤務可能です。',
+    },
+    news: {
+        title: '新着情報｜ライフサポートあさひ',
+        description: 'ライフサポートあさひの新着情報、採用ニュース、運営情報を掲載しています。',
+    },
+    recruit: {
+        title: '求人一覧｜ライフサポートあさひ',
+        description: '東大阪市の訪問介護求人一覧。正社員、登録ヘルパー、社保加入ヘルパー、職場体験・見学会の募集情報を掲載しています。',
+    },
+    company: {
+        title: '会社概要｜ライフサポートあさひ',
+        description: 'ライフサポートあさひの会社概要、所在地、事業内容、沿革をご案内します。',
+    },
+    staff: {
+        title: '社員紹介｜ライフサポートあさひ',
+        description: 'ライフサポートあさひで働くスタッフの紹介ページです。現場の声や働き方の魅力をご覧いただけます。',
+    },
+    facilities: {
+        title: '事業所一覧｜ライフサポートあさひ',
+        description: 'ライフサポートあさひの本社オフィス、面接・研修施設、訪問対応エリアをご案内します。',
+    },
+    contact: {
+        title: 'お問い合わせ｜ライフサポートあさひ',
+        description: 'ライフサポートあさひへのお問い合わせページです。ご相談、面接、見学についてお気軽にご連絡ください。',
+    },
+};
+
+const normalizePathname = (pathname) => {
+    if (!pathname || pathname === '/') return '/';
+    const trimmed = pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+    return trimmed || '/';
+};
+
+const getViewFromPathname = (pathname) => {
+    const normalized = normalizePathname(pathname);
+    const matchedEntry = Object.entries(VIEW_PATHS).find(([, path]) => path === normalized);
+    return matchedEntry ? matchedEntry[0] : 'home';
+};
+
+const buildRoutePath = (view, hash = '') => {
+    const basePath = VIEW_PATHS[view] || VIEW_PATHS.home;
+    return hash ? `${basePath}#${encodeURIComponent(hash)}` : basePath;
+};
+
+const getRouteStateFromLocation = () => {
+    if (typeof window === 'undefined') {
+        return { view: 'home', recruitScrollTarget: null };
+    }
+
+    const currentView = getViewFromPathname(window.location.pathname);
+    const currentHash = window.location.hash ? decodeURIComponent(window.location.hash.slice(1)) : null;
+
+    return {
+        view: currentView,
+        recruitScrollTarget: currentView === 'recruit' ? currentHash : null,
+    };
+};
+
+const isPlainLeftClick = (event) => (
+    event.button === 0 &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.shiftKey &&
+    !event.altKey
+);
+
+const updateMetaTag = (selector, attribute, value) => {
+    const element = document.querySelector(selector);
+    if (element && value) {
+        element.setAttribute(attribute, value);
+    }
+};
+
+const RouteAnchor = ({ href, onNavigate, onClick, children, ...props }) => {
+    const handleClick = (event) => {
+        onClick?.(event);
+        if (
+            event.defaultPrevented ||
+            !onNavigate ||
+            !href ||
+            !href.startsWith('/') ||
+            !isPlainLeftClick(event) ||
+            props.target === '_blank'
+        ) {
+            return;
+        }
+
+        event.preventDefault();
+        onNavigate(href);
+    };
+
+    return (
+        <a href={href} onClick={handleClick} {...props}>
+            {children}
+        </a>
+    );
+};
+
         // ==========================================
         // スプレッドシート設定
         // ==========================================
@@ -401,11 +513,11 @@ import './index.css';
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                         <div className="flex items-center gap-4"><div className="flex items-center gap-2"><img src="/logo.png" alt="株式会社旭" className="h-9 w-9 object-contain" /><span className="text-2xl font-black tracking-wide bg-gradient-to-r from-orange-500 via-orange-400 to-amber-500 bg-clip-text text-transparent">株式会社旭</span></div><p className="hidden md:block text-[10px] text-slate-600 font-bold border-l-2 border-slate-300 pl-4 leading-tight">大阪府東大阪市荒本北2丁目5-5<br />訪問介護・障がい福祉サービス事業</p></div>
                         <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs font-black text-slate-800">
-                            <button onClick={() => onNavigate('home')} className="hover:text-slate-600 transition-colors">トップページ</button>
-                            <button onClick={() => onNavigate('company')} className="hover:text-slate-600 transition-colors">会社概要</button>
-                            <button onClick={() => onNavigate('facilities')} className="hover:text-slate-600 transition-colors">事業所一覧</button>
-                            <button onClick={() => onNavigate('recruit')} className="hover:text-slate-600 transition-colors">求人一覧</button>
-                            <button onClick={() => onNavigate('contact')} className="hover:text-slate-600 transition-colors">お問い合わせ</button>
+                            <RouteAnchor href={VIEW_PATHS.home} onNavigate={onNavigate} className="hover:text-slate-600 transition-colors">トップページ</RouteAnchor>
+                            <RouteAnchor href={VIEW_PATHS.company} onNavigate={onNavigate} className="hover:text-slate-600 transition-colors">会社概要</RouteAnchor>
+                            <RouteAnchor href={VIEW_PATHS.facilities} onNavigate={onNavigate} className="hover:text-slate-600 transition-colors">事業所一覧</RouteAnchor>
+                            <RouteAnchor href={VIEW_PATHS.recruit} onNavigate={onNavigate} className="hover:text-slate-600 transition-colors">求人一覧</RouteAnchor>
+                            <RouteAnchor href={VIEW_PATHS.contact} onNavigate={onNavigate} className="hover:text-slate-600 transition-colors">お問い合わせ</RouteAnchor>
                         </div>
                     </div>
                     <div className="mt-4 pt-2 border-t border-slate-200 text-center text-[10px] text-slate-500 font-medium">&copy; {new Date().getFullYear()} Asahi Co., Ltd. All Rights Reserved.</div>
@@ -482,7 +594,7 @@ import './index.css';
             );
         };
 
-        const SalaryHeroCard = ({ title, salary, subSalary, benefits, colorClass, onClick, className = "" }) => {
+        const SalaryHeroCard = ({ title, salary, subSalary, benefits, colorClass, href, onNavigate, onClick, className = "" }) => {
             // "（実績ベース）" などの注釈を改行して小さく表示するフォーマッター
             const formatBenefitText = (text) => {
                 if (typeof text !== 'string') return text;
@@ -499,7 +611,7 @@ import './index.css';
             };
 
             return (
-                <button onClick={onClick} className={`relative w-full h-full group overflow-hidden bg-white hover:bg-slate-50 transition-all duration-300 text-left p-4 md:p-5 rounded-xl shadow-sm hover:shadow-md flex flex-col md:flex-col ${colorClass} ${className}`}>
+                <RouteAnchor href={href} onNavigate={onNavigate} onClick={onClick} className={`relative w-full h-full group overflow-hidden bg-white hover:bg-slate-50 transition-all duration-300 text-left p-4 md:p-5 rounded-xl shadow-sm hover:shadow-md flex flex-col md:flex-col ${colorClass} ${className}`}>
                     {/* スマホ: 横並び / PC: 縦並び */}
                     <div className="flex-1 flex flex-row md:flex-col items-center gap-0 w-full">
                         {/* 左側: タイトル・金額 (幅固定で位置を統一) */}
@@ -517,7 +629,7 @@ import './index.css';
                     {/* PC: 下部にbenefits */}
                     {benefits && benefits.length > 0 && (<div className="hidden md:block mt-3 pt-3 border-t border-slate-100"><ul className="space-y-1.5">{benefits.slice(0, 2).map((benefit, idx) => (<li key={idx} className="text-xs font-bold text-slate-400 flex items-center gap-1.5 truncate"><CheckCircle size={12} className="text-orange-400 shrink-0" />{formatBenefitText(benefit)}</li>))}</ul></div>)}
                     <div className="absolute top-3 right-3 h-6 w-6 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-orange-50 transition-colors"><ArrowRight size={12} className="text-slate-300 group-hover:text-orange-500 transition-colors" /></div>
-                </button>
+                </RouteAnchor>
             );
         };
 
@@ -1632,7 +1744,7 @@ import './index.css';
                         <div className="max-w-4xl mx-auto text-center py-6">
                             <h1 className="text-3xl font-black tracking-tight mb-3"><GradientText>{getSetting('ページタイトル') || 'お問い合わせ'}</GradientText></h1>
                             <p className="text-sm text-slate-500 font-medium">{getSetting('ページ説明')}<br className="hidden md:block" />どなた様でもお問い合わせはお気軽にお電話ください。下記のお問い合わせフォームからのご連絡も承っております。</p>
-                            <p className="text-sm text-slate-500 font-medium mt-1">面接や見学については、求人一覧の面接・見学応募フォームよりご応募ください。応募フォームは<span className="text-sm font-bold mx-1 cursor-pointer underline decoration-orange-300 decoration-2 underline-offset-4 hover:decoration-orange-500 transition-all inline-flex items-center gap-1" onClick={() => navigateToRecruit && navigateToRecruit('application-form')}><span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-orange-600">こちら</span><ChevronDown size={10} className="text-orange-500 animate-bounce" /></span></p>
+                            <p className="text-sm text-slate-500 font-medium mt-1">面接や見学については、求人一覧の面接・見学応募フォームよりご応募ください。応募フォームは<RouteAnchor href={buildRoutePath('recruit', 'application-form')} onNavigate={() => navigateToRecruit && navigateToRecruit('application-form')} className="text-sm font-bold mx-1 underline decoration-orange-300 decoration-2 underline-offset-4 hover:decoration-orange-500 transition-all inline-flex items-center gap-1 align-baseline"><span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-orange-600">こちら</span><ChevronDown size={10} className="text-orange-500 animate-bounce" /></RouteAnchor></p>
                         </div>
                     </div>
 
@@ -1659,8 +1771,8 @@ import './index.css';
         const App = () => {
             const [isMenuOpen, setIsMenuOpen] = useState(false);
             const [scrolled, setScrolled] = useState(false);
-            const [view, setView] = useState('home');
-            const [recruitScrollTarget, setRecruitScrollTarget] = useState(null);
+            const [view, setView] = useState(() => getRouteStateFromLocation().view);
+            const [recruitScrollTarget, setRecruitScrollTarget] = useState(() => getRouteStateFromLocation().recruitScrollTarget);
 
             // スプレッドシートデータの状態管理
             const [newsData, setNewsData] = useState(DEFAULT_DATA.news);
@@ -1806,6 +1918,37 @@ import './index.css';
                 return () => window.removeEventListener('scroll', handleScroll);
             }, []);
 
+            useEffect(() => {
+                const syncRouteState = () => {
+                    const routeState = getRouteStateFromLocation();
+                    setView(routeState.view);
+                    setRecruitScrollTarget(routeState.recruitScrollTarget);
+                    setIsMenuOpen(false);
+                };
+
+                window.addEventListener('popstate', syncRouteState);
+                window.addEventListener('hashchange', syncRouteState);
+
+                return () => {
+                    window.removeEventListener('popstate', syncRouteState);
+                    window.removeEventListener('hashchange', syncRouteState);
+                };
+            }, []);
+
+            useEffect(() => {
+                const meta = ROUTE_META[view] || ROUTE_META.home;
+                const canonicalUrl = new URL(normalizePathname(window.location.pathname), window.location.origin).toString();
+
+                document.title = meta.title;
+                updateMetaTag('meta[name="description"]', 'content', meta.description);
+                updateMetaTag('meta[property="og:title"]', 'content', meta.title);
+                updateMetaTag('meta[property="og:description"]', 'content', meta.description);
+                updateMetaTag('meta[property="og:url"]', 'content', canonicalUrl);
+                updateMetaTag('meta[name="twitter:title"]', 'content', meta.title);
+                updateMetaTag('meta[name="twitter:description"]', 'content', meta.description);
+                updateMetaTag('link[rel="canonical"]', 'href', canonicalUrl);
+            }, [view]);
+
             // データロード完了後にローディング画面を消す
             useEffect(() => {
                 const loadingEl = document.getElementById('loading');
@@ -1815,18 +1958,26 @@ import './index.css';
                 }
             }, [dataLoading]);
 
-            const navigateTo = (targetView) => {
-                setView(targetView);
+            const navigateToPath = (targetPath, { scrollTop = true } = {}) => {
+                const nextPath = targetPath || VIEW_PATHS.home;
+
+                if (`${window.location.pathname}${window.location.hash}` !== nextPath) {
+                    window.history.pushState({}, '', nextPath);
+                }
+
+                const routeState = getRouteStateFromLocation();
+                setView(routeState.view);
+                setRecruitScrollTarget(routeState.recruitScrollTarget);
                 setIsMenuOpen(false);
-                window.scrollTo(0, 0);
+
+                if (scrollTop) {
+                    window.scrollTo(0, 0);
+                }
             };
 
-            const navigateToRecruit = (targetId = null) => {
-                setView('recruit');
-                setRecruitScrollTarget(targetId);
-                setIsMenuOpen(false);
-                window.scrollTo(0, 0);
-            };
+            const navigateTo = (targetView) => navigateToPath(buildRoutePath(targetView));
+
+            const navigateToRecruit = (targetId = null) => navigateToPath(buildRoutePath('recruit', targetId || ''), { scrollTop: !targetId });
 
             // 統計データからカテゴリ別の値を取得するヘルパー関数
             const getStat = (category, key) => {
@@ -1937,7 +2088,7 @@ import './index.css';
                                                             </>
                                                         );
                                                     }
-                                                    return (<SalaryHeroCard key={card.id} title={card.title} salary={displaySalary} subSalary={card.subSalary} benefits={benefits} colorClass={card.colorClass} onClick={() => navigateToRecruit(card.id)} />);
+                                                    return (<SalaryHeroCard key={card.id} title={card.title} salary={displaySalary} subSalary={card.subSalary} benefits={benefits} colorClass={card.colorClass} href={buildRoutePath('recruit', card.id)} onNavigate={navigateToPath} onClick={() => navigateToRecruit(card.id)} />);
                                                 })}
                                             </div>
                                         </div>
@@ -1961,9 +2112,9 @@ import './index.css';
 
                                                     <h2 className="text-2xl font-black text-slate-900 tracking-tight"><GradientText>社員紹介</GradientText></h2>
                                                 </div>
-                                                <button onClick={() => navigateTo('staff')} className="text-xs font-bold text-orange-500 hover:text-orange-600 flex items-center gap-1 transition-colors">
+                                                <RouteAnchor href={VIEW_PATHS.staff} onNavigate={navigateToPath} className="text-xs font-bold text-orange-500 hover:text-orange-600 flex items-center gap-1 transition-colors">
                                                     もっと見る <ArrowRight size={14} />
-                                                </button>
+                                                </RouteAnchor>
                                             </div>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 {staffData.slice(0, 2).map((staff, index) => (
@@ -2179,7 +2330,7 @@ import './index.css';
                                                             </div>
                                                             <ArrowRight size={20} className="text-slate-300 group-hover:text-orange-500 transition-colors shrink-0" />
                                                         </a>
-                                                        <button onClick={() => navigateToRecruit(null)} className="flex-1 bg-slate-800 rounded-2xl shadow-lg shadow-slate-300 p-5 flex items-center gap-4 group hover:bg-slate-700 transition-all cursor-pointer text-left">
+                                                        <RouteAnchor href={VIEW_PATHS.recruit} onNavigate={navigateToPath} onClick={() => navigateToRecruit(null)} className="flex-1 bg-slate-800 rounded-2xl shadow-lg shadow-slate-300 p-5 flex items-center gap-4 group hover:bg-slate-700 transition-all cursor-pointer text-left">
                                                             <div className="shrink-0 w-12 h-12 rounded-full bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-900/30">
                                                                 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                                                             </div>
@@ -2188,7 +2339,7 @@ import './index.css';
                                                                 <p className="text-lg font-black text-white">面談に<span className="text-orange-400">応募する</span></p>
                                                             </div>
                                                             <ArrowRight size={20} className="text-white/50 group-hover:text-white transition-colors shrink-0" />
-                                                        </button>
+                                                        </RouteAnchor>
                                                     </div>
                                                 </div>
                                         </div>
@@ -2206,14 +2357,14 @@ import './index.css';
 
                     <nav className="fixed top-0 z-50 w-full transition-all duration-300 bg-white/95 backdrop-blur-md shadow-md py-3">
                         <div className="container mx-auto px-6 flex items-center justify-between">
-                            <div className="cursor-pointer group" onClick={() => navigateTo('home')}><div className={`flex items-center gap-2 transition-all duration-300`}><Logo textColor="text-orange-500" /></div></div>
+                            <RouteAnchor href={VIEW_PATHS.home} onNavigate={navigateToPath} className="cursor-pointer group"><div className={`flex items-center gap-2 transition-all duration-300`}><Logo textColor="text-orange-500" /></div></RouteAnchor>
                             <div className="hidden lg:flex items-center gap-6 text-sm font-bold transition-colors duration-300 text-slate-800">
-                                <button onClick={() => navigateTo('home')} className="hover:text-slate-600 transition-colors whitespace-nowrap">トップページ</button>
-                                <button onClick={() => navigateTo('company')} className="hover:text-slate-600 transition-colors whitespace-nowrap">会社概要</button>
-                                <button onClick={() => navigateTo('staff')} className="hover:text-slate-600 transition-colors whitespace-nowrap">社員紹介</button>
-                                <button onClick={() => navigateTo('facilities')} className="hover:text-slate-600 transition-colors whitespace-nowrap">事業所一覧</button>
-                                <button onClick={() => navigateToRecruit(null)} className="hover:text-slate-600 transition-colors whitespace-nowrap">求人一覧</button>
-                                <button onClick={() => navigateTo('contact')} className="hover:text-slate-600 transition-colors whitespace-nowrap">お問い合わせ</button>
+                                <RouteAnchor href={VIEW_PATHS.home} onNavigate={navigateToPath} className="hover:text-slate-600 transition-colors whitespace-nowrap">トップページ</RouteAnchor>
+                                <RouteAnchor href={VIEW_PATHS.company} onNavigate={navigateToPath} className="hover:text-slate-600 transition-colors whitespace-nowrap">会社概要</RouteAnchor>
+                                <RouteAnchor href={VIEW_PATHS.staff} onNavigate={navigateToPath} className="hover:text-slate-600 transition-colors whitespace-nowrap">社員紹介</RouteAnchor>
+                                <RouteAnchor href={VIEW_PATHS.facilities} onNavigate={navigateToPath} className="hover:text-slate-600 transition-colors whitespace-nowrap">事業所一覧</RouteAnchor>
+                                <RouteAnchor href={VIEW_PATHS.recruit} onNavigate={navigateToPath} onClick={() => navigateToRecruit(null)} className="hover:text-slate-600 transition-colors whitespace-nowrap">求人一覧</RouteAnchor>
+                                <RouteAnchor href={VIEW_PATHS.contact} onNavigate={navigateToPath} className="hover:text-slate-600 transition-colors whitespace-nowrap">お問い合わせ</RouteAnchor>
                                 <div className="flex items-center gap-3 border-l border-slate-300 pl-4">
                                     <a href="https://www.instagram.com/lifesupport__asahi?igsh=a3ViYjRnZW9haDA0" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center hover:scale-110 transition-transform"><IconGradients /><InstagramGradient size={22} /></a>
                                     <a href="https://www.tiktok.com/@lifesupportasahi?_r=1&_t=ZS-933eSshEnRv" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center hover:scale-110 transition-transform"><TikTokGlitch size={20} /></a>
@@ -2226,13 +2377,13 @@ import './index.css';
                                     <a href="https://www.tiktok.com/@lifesupportasahi?_r=1&_t=ZS-933eSshEnRv" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center"><TikTokGlitch size={18} /></a>
                                     <a href="https://youtube.com/channel/UCGCe56h_8FMtivkiG5aZqhQ?si=5-nnYr9SsupOtLn0" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center"><YoutubeButton size={14} /></a>
                                 </div>
-                                <button onClick={() => navigateToRecruit(null)} className="hidden lg:block rounded-full px-6 py-2.5 text-xs font-bold shadow-lg hover:scale-105 active:scale-95 transition-all bg-orange-500 text-white hover:bg-orange-600 whitespace-nowrap">求人に応募する</button><button className="lg:hidden p-2 text-slate-900" onClick={() => setIsMenuOpen(!isMenuOpen)}>{isMenuOpen ? <X size={28} /> : <Menu size={28} />}</button></div>
+                                <RouteAnchor href={VIEW_PATHS.recruit} onNavigate={navigateToPath} onClick={() => navigateToRecruit(null)} className="hidden lg:block rounded-full px-6 py-2.5 text-xs font-bold shadow-lg hover:scale-105 active:scale-95 transition-all bg-orange-500 text-white hover:bg-orange-600 whitespace-nowrap">求人に応募する</RouteAnchor><button className="lg:hidden p-2 text-slate-900" onClick={() => setIsMenuOpen(!isMenuOpen)}>{isMenuOpen ? <X size={28} /> : <Menu size={28} />}</button></div>
                         </div>
-                        {isMenuOpen && (<div className="absolute top-full left-0 w-full bg-white shadow-xl lg:hidden flex flex-col border-t border-slate-100 animate-in slide-in-from-top-5 duration-200"><button onClick={() => navigateTo('home')} className="text-left font-bold text-slate-600 py-5 px-8 border-b border-slate-100 active:bg-slate-50">トップページ</button><button onClick={() => navigateTo('company')} className="text-left font-bold text-slate-600 py-5 px-8 border-b border-slate-100 active:bg-slate-50">会社概要</button><button onClick={() => navigateTo('staff')} className="text-left font-bold text-slate-600 py-5 px-8 border-b border-slate-100 active:bg-slate-50">社員紹介</button><button onClick={() => navigateTo('facilities')} className="text-left font-bold text-slate-600 py-5 px-8 border-b border-slate-100 active:bg-slate-50">事業所一覧</button><button onClick={() => navigateToRecruit(null)} className="text-left font-bold text-white bg-orange-500 py-5 px-8 active:bg-orange-600 flex justify-between items-center">求人一覧を見る <ArrowRight size={16} /></button><button onClick={() => navigateTo('contact')} className="text-left font-bold text-slate-600 py-5 px-8 border-b border-slate-100 active:bg-slate-50">お問い合わせ</button></div>)}
+                        {isMenuOpen && (<div className="absolute top-full left-0 w-full bg-white shadow-xl lg:hidden flex flex-col border-t border-slate-100 animate-in slide-in-from-top-5 duration-200"><RouteAnchor href={VIEW_PATHS.home} onNavigate={navigateToPath} className="text-left font-bold text-slate-600 py-5 px-8 border-b border-slate-100 active:bg-slate-50">トップページ</RouteAnchor><RouteAnchor href={VIEW_PATHS.company} onNavigate={navigateToPath} className="text-left font-bold text-slate-600 py-5 px-8 border-b border-slate-100 active:bg-slate-50">会社概要</RouteAnchor><RouteAnchor href={VIEW_PATHS.staff} onNavigate={navigateToPath} className="text-left font-bold text-slate-600 py-5 px-8 border-b border-slate-100 active:bg-slate-50">社員紹介</RouteAnchor><RouteAnchor href={VIEW_PATHS.facilities} onNavigate={navigateToPath} className="text-left font-bold text-slate-600 py-5 px-8 border-b border-slate-100 active:bg-slate-50">事業所一覧</RouteAnchor><RouteAnchor href={VIEW_PATHS.recruit} onNavigate={navigateToPath} onClick={() => navigateToRecruit(null)} className="text-left font-bold text-white bg-orange-500 py-5 px-8 active:bg-orange-600 flex justify-between items-center">求人一覧を見る <ArrowRight size={16} /></RouteAnchor><RouteAnchor href={VIEW_PATHS.contact} onNavigate={navigateToPath} className="text-left font-bold text-slate-600 py-5 px-8 border-b border-slate-100 active:bg-slate-50">お問い合わせ</RouteAnchor></div>)}
                     </nav>
                     <main className="flex-grow">{renderCurrentView()}</main>
                     <FloatingPhoneButton />
-                    <Footer onNavigate={navigateTo} />
+                    <Footer onNavigate={navigateToPath} />
                 </div>
             );
         };
