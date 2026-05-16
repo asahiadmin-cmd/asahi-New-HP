@@ -905,7 +905,7 @@
             const nextSlide = () => setCurrentIndex((prev) => (prev + 1) % images.length);
             const prevSlide = () => setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
             return (
-                <div className="relative w-full aspect-video md:aspect-auto md:h-full rounded-3xl overflow-hidden shadow-xl border border-white/50 group">
+                <div className="absolute inset-0 rounded-3xl overflow-hidden shadow-xl border border-white/50 group">
                     {images.map((img, index) => (
                         <div key={index} className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentIndex ? 'opacity-100' : 'opacity-0'}`}>
                             <img
@@ -2357,7 +2357,7 @@
                                     {/* スマホ・タブレット: 縦並び / PC(lg以上): 横並び */}
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch mb-8">
                                         {/* スライダー */}
-                                        <div className="aspect-[16/9] lg:aspect-auto lg:h-full rounded-3xl overflow-hidden shadow-lg bg-slate-200">
+                                        <div className="relative w-full lg:h-full rounded-3xl overflow-hidden shadow-lg bg-slate-200" style={{ paddingBottom: window.innerWidth >= 1024 ? '0' : '56.25%' }}>
                                             {dataLoading ? (
                                                 <div className="w-full h-full bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 animate-pulse flex items-center justify-center">
                                                     <div className="text-slate-300"><ImageIcon size={48} /></div>
