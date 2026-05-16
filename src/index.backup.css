@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #F5F7FA;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        #loading {
+            position: fixed;
+            inset: 0;
+            background: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            color: #F97316;
+            z-index: 9999;
+            transition: opacity 0.5s;
+            pointer-events: none;
+        }
+
+        /* モバイル用: 事業所一覧ページの画像を縦長表示 */
+        .exterior-container {
+            aspect-ratio: 3 / 4;
+        }
+
+        .headoffice-card-container {
+            aspect-ratio: 3 / 4;
+        }
+
+        /* PC用（768px以上）: デフォルトのアスペクト比に戻す */
+        @media (min-width: 768px) {
+            .exterior-container {
+                aspect-ratio: auto;
+                min-height: 320px;
+            }
+
+            .headoffice-card-container {
+                aspect-ratio: auto;
+                flex: 1;
+            }
+        }
+    

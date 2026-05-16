@@ -1,0 +1,2152 @@
+import React from 'react';
+import './index.css';
+
+
+        const { useState, useEffect, useRef } = React;
+
+        // ==========================================
+        // スプレッドシート設定
+        // ==========================================
+        const SPREADSHEET_CONFIG = {
+            // ここにGoogle Apps ScriptのデプロイURLを設定してください
+            // 例: 'https://script.google.com/macros/s/AKfycby.../exec'
+            // New deployment URL (v9 - 2026/01/29)
+            apiUrl: 'https://script.google.com/macros/s/AKfycbx2ruIiBFf2t2eiGxQsU5fOCkzE7mLquJ-EGN_qCQmw5AEViUDp8vTkcpASiduGLCYwSA/exec',
+            formApiUrl: 'https://script.google.com/macros/s/AKfycbxhmGvzctdpfIpprOvF9Db_AND3Ov6KrFcuif1GyFHGiSbrtiFZcXVc4cjpjRL5rfpm8A/exec',
+            // 方式B: 6シート構成（ページ = シート）
+            // section を指定することでシート内のセクションを取得
+            sheets: {
+                // トップページ（3セクション）
+                news: { sheet: 'トップページ', section: 'ニュース' },
+                slider: { sheet: 'トップページ', section: 'スライダー' },
+                stats: { sheet: 'トップページ', section: '統計データ' },
+                // 会社概要（2セクション）
+                companyInfo: { sheet: '会社概要', section: '会社情報' },
+                history: { sheet: '会社概要', section: '沿革' },
+                // 社員紹介（1セクションのみ）
+                staff: { sheet: '社員紹介', section: null },
+                // 事業所一覧（3セクション）
+                facilityImages: { sheet: '事業所一覧', section: '画像一覧' },
+                facilityInfo: { sheet: '事業所一覧', section: '施設情報' },
+                facilityTexts: { sheet: '事業所一覧', section: 'ページテキスト' },
+                // 求人（4セクション）
+                recruitCards: { sheet: '求人', section: 'カード一覧' },
+                recruitFulltime: { sheet: '求人', section: '正社員詳細' },
+                recruitHelper: { sheet: '求人', section: '登録ヘルパー詳細' },
+                recruitHelperInsured: { sheet: '求人', section: '社保ヘルパー詳細' },
+                recruitIntern: { sheet: '求人', section: '職場体験詳細' },
+                // お問い合わせ（1セクションのみ）
+                pageSettings: { sheet: 'お問い合わせ', section: null }
+            },
+            // オフライン時や設定前のデフォルトデータを使用
+            useDefaultData: true
+        };
+
+        // ==========================================
+        // スプレッドシートデータ取得関数
+        // ==========================================
+        const fetchSheetData = async (dataKey) => {
+            // APIが設定されていない場合はnullを返す
+            if (!SPREADSHEET_CONFIG.apiUrl) {
+                console.warn('スプレッドシートAPIが設定されていません。デフォルトデータを使用します。');
+                return null;
+            }
+
+            // 方式B対応: sheets設定からsheet/sectionを取得
+            const config = SPREADSHEET_CONFIG.sheets[dataKey];
+            if (!config) {
+                console.error(`設定が見つかりません: ${dataKey}`);
+                return null;
+            }
+
+            // 文字列の場合（旧形式）とオブジェクトの場合（新形式）を両方サポート
+            const sheetName = typeof config === 'string' ? config : config.sheet;
+            const sectionName = typeof config === 'string' ? null : config.section;
+
+            try {
+                let url = `${SPREADSHEET_CONFIG.apiUrl}?sheet=${encodeURIComponent(sheetName)}`;
+                if (sectionName) {
+                    url += `&section=${encodeURIComponent(sectionName)}`;
+                }
+                // キャッシュバスティング（ブラウザキャッシュを回避）
+                url += `&_t=${Date.now()}`;
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log(`[DEBUG] ${sheetName}/${sectionName || 'all'} 取得成功:`, data);
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                return data;
+            } catch (error) {
+                console.error(`スプレッドシートからのデータ取得エラー (${sheetName}${sectionName ? '/' + sectionName : ''}):`, error);
+                return null;
+            }
+        };
+
+        // ==========================================
+        // デフォルトデータ（スプレッドシート未設定時のフォールバック）
+        // ==========================================
+        const DEFAULT_DATA = {
+            news: [
+                { date: '2025.10.21', text: '事務スタッフさん募集終了', tag: 'お知らせ', content: "このたび募集しておりました事務員の採用につきまして、当初は令和7年10月15日を応募期限としておりましたが、多数のご応募を賜りましたため、期日前に受付を終了させていただくこととなりました。\nご応募くださいました皆さまに、心より感謝申し上げます。\n今後の採用情報につきましては、当ホームページにて随時ご案内いたします。" },
+                { date: '2025.09.23', text: '【近鉄バス】あさひ募集広告バス、町を走行中！', tag: '広報', content: "側面（横一面）にラッピングされたあさひ募集広告バスが市内を走行してます。\n後方（後ろ一面）に広告が掲載されているバスも走行中です。\n見かけた方は、ぜひ写真や動画を撮ってシェアしてください📸" },
+                { date: '2025.07.24', text: 'TikTok・インスタグラムアカウント開設しました', tag: 'SNS', content: "このたび、当社では求人募集の強化と、より多くの方に当社の雰囲気や魅力を知っていただくため、 TikTok・インスタグラムのアカウントを開設しました。\n職場の様子やスタッフの声、仕事内容の紹介など、短い動画で分かりやすく発信していく予定です。" },
+                { date: '2025.07.17', text: '介護人材確保・職場環境改善等補助金について', tag: '重要', content: "旭では、このたび交付される「介護人材確保・職場環境改善等補助金」を全額、従業員の皆さまへの賞与として還元することといたしました。\nこれからも「現場が主役」の姿勢は変わりません。日頃のご尽力に感謝するとともに、より良い職場環境づくりに努めてまいります。" },
+                { date: '2025.07.10', text: '社会保険加入条件拡大+時給UP！', tag: '求人', content: "社会保険に加入して、もっと安心・充実した働き方を！\nライフサポートあさひでは統合により業務効率が向上し、新しい仲間も増えて会社全体が成長を続けています。\n2025年4月からは週20時間以上勤務される方は社会保険に加入となります。\n「もう少し勤務時間を増やしたい」「他社との掛け持ちを調整したい」など、どうぞお気軽にご相談ください。" },
+                { date: '2025.06.30', text: '正社員・登録ヘルパーさん募集', tag: '求人', content: "事業拡大に伴い正社員、登録ヘルパーさんを募集してます。\nホームページ又は直接お電話いただいた場合、(正社員)入社1ヶ月目から賞与対象者とし継続月数により支給させていただきます。\n皆様からのご応募お待ちしてます。" },
+                { date: '2025.06.20', text: 'ふるさと納税のポイント付与9/末で廃止', tag: 'お知らせ', content: "【令和7年10月1日から適用】寄附に伴いポイント等の付与を行う者を通じた募集を禁止すること。（募集適正基準の改正）\nポイント付与を廃止することで、寄付者が真に応援したい自治体や事業を選ぶようになることが期待されています。" },
+                { date: '2025.06.03', text: '産業医選任のお知らせ', tag: 'お知らせ', content: "産業医として、ゆうあいクリニックの院長を務めていらっしゃいます金先生を選任致しましたことを報告致します。\nこれを機に、今まで以上に社員の心身の健康に気を配ると共に、産業医と連携しながら快適な職場づくりに努めてまいります。" },
+                { date: '2025.01.08', text: '新年のご挨拶', tag: 'ご挨拶', content: "新年あけましておめでとうございます。\n当社は2016年1月1日オープン以来、今年で10年目を迎えることができました。\n皆様より多くのお力添えをいただき、無事に新年を迎えることができたことを心より感謝申し上げます。\n2025年「乙巳（きのとみ）」は、新しい循環の始まりを象徴し、これまでの成果を土台にさらなる成長と飛躍を目指す年とされています。" },
+                { date: '2020.11.15', text: 'ICT化に向けての取り組みを開始しました', tag: '経営', content: "業務効率化とスタッフの負担軽減を目指し、ICT化プロジェクトを始動しました。\n介護記録のデジタル化や情報共有のスムーズ化を図り、より利用者様に向き合える環境づくりを推進してまいります。" },
+                { date: '2020.08.01', text: '「ライフサポートあさひ加納」新規オープン', tag: 'お知らせ', content: "東大阪市加納に新しい事業所「ライフサポートあさひ加納」を開設いたしました。\n地域の皆様により身近なサービスを提供できるよう努めてまいります。" },
+                { date: '2020.07.01', text: '「ライフサポートあさひ若江」新規オープン', tag: 'お知らせ', content: "東大阪市若江本町に「ライフサポートあさひ若江」をオープンいたしました。\nスタッフ一同、地域福祉への貢献を目指して邁進いたします。" }
+            ],
+            slider: [
+                { url_pc: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80", url_mobile: "", label: "安心と笑顔を届ける、居宅・訪問介護の専門チーム" },
+                { url_pc: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80", url_mobile: "", label: "AIと最新ツールを活用し、介護の現場をもっと効率的に。" },
+                { url_pc: "https://images.unsplash.com/photo-1581056771107-24ca5f033842?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80", url_mobile: "", label: "思いやりが行き交う、介護の現場" }
+            ],
+            staff: [
+                { name: "福島 志乃", role: "Service Manager", catchphrase: "利用者様と向き合う時間を大切にしています。", description: "以前は記録に追われていましたが、今はスマホで完了。本来やりたかった『寄り添う介護』ができています。", prevJob: "飲食店スタッフ", holiday: "カフェ巡り、映画鑑賞", favorite: "スタッフ同士の仲が良いところ", photo: "https://drive.google.com/file/d/1OwvEsDyjwB9jP41VyOn7wKQa9Lus2HTD/view?usp=drive_link" },
+                { name: "松岡 淳史", role: "Full-time Staff", catchphrase: "ITが苦手だった私でも、すぐに慣れました。", description: "操作はとても簡単で、チームの連携もスムーズ。困ったときはチャットですぐに相談できるので安心です。", prevJob: "営業職", holiday: "フットサル、ゲーム", favorite: "残業がほとんどないところ" },
+                { name: "小林 宥輝", role: "Manager", catchphrase: "頑張りが給与に反映されるから、やりがいがあります。", description: "効率化で生まれた利益が還元される仕組みに納得して入社しました。プライベートの時間もしっかり確保できています。", prevJob: "介護施設職員", holiday: "家族と過ごす、ドライブ", favorite: "頑張りを正当に評価してくれる" },
+                { name: "佐藤 健太", role: "Care Leader", catchphrase: "チーム全体のスキルアップを目指して。", description: "新人研修を担当しています。技術だけでなく、利用者様とのコミュニケーションの楽しさを伝えたいです。", prevJob: "美容師", holiday: "サーフィン、キャンプ", favorite: "新しいことに挑戦できる社風" },
+                { name: "田中 美咲", role: "Office Staff", catchphrase: "現場のスタッフが働きやすい環境を。", description: "バックオフィスから現場を支えています。デジタルツールを活用して、事務作業の効率化を推進中です。", prevJob: "事務員", holiday: "ショッピング、料理", favorite: "オフィスが綺麗で快適" },
+                { name: "鈴木 翔", role: "Part-time Helper", catchphrase: "自分のペースで働けるのが魅力。", description: "週3日の勤務ですが、直行直帰ができるのでプライベートとの両立がしやすいです。", prevJob: "大学生（在学中）", holiday: "バンド活動、ライブ", favorite: "シフトの融通が利く" },
+                { name: "高橋 優子", role: "Registered Helper", catchphrase: "ブランクがあっても安心して復帰できました。", description: "研修制度が充実しており、最新の介護技術を学び直すことができました。今は自信を持って働いています。", prevJob: "専業主婦", holiday: "ガーデニング、孫と遊ぶ", favorite: "研修制度がしっかりしている" },
+                { name: "伊藤 誠", role: "System Administrator", catchphrase: "介護×ITで新しい価値を。", description: "社内システムの管理や新しいツールの導入を担当。現場の声を反映して、より使いやすいシステムを目指しています。", prevJob: "SE（システムエンジニア）", holiday: "プログラミング、読書", favorite: "DX化に積極的なところ" },
+                { name: "渡辺 さくら", role: "Care Staff", catchphrase: "毎日が新しい発見の連続です。", description: "利用者様との会話から学ぶことがたくさんあります。笑顔が見られる瞬間が一番のやりがいです。", prevJob: "アパレル販売員", holiday: "ヨガ、旅行", favorite: "利用者様との距離が近い" },
+                { name: "山本 大輔", role: "Area Manager", catchphrase: "地域に根ざしたサービスを広げたい。", description: "複数の事業所を統括しています。地域社会と連携し、より良い介護サービスを提供できるよう尽力しています。", prevJob: "病院相談員", holiday: "ゴルフ、釣り", favorite: "地域貢献ができる" }
+            ],
+            history: [
+                { date: "平成27年10月", content: "株式会社 旭 設立 (2015.10.21)" },
+                { date: "平成28年1月", content: "ライフサポートあさひ開業 (2016.1.1 大東市灰塚)\n居宅/同行/重度/訪問介護/介護予防指定" },
+                { date: "平成28年2月", content: "大東/四條畷/東大阪/大阪市移動支援指定" },
+                { date: "平成28年12月", content: "ライフサポートあさひ運営指導(訪問介護)" },
+                { date: "平成30年8月", content: "東大阪市岩田町に休憩所設置" },
+                { date: "平成30年10月", content: "八尾市移動支援指定" },
+                { date: "令和1年8月", content: "事業所を大東市御領へ移転" },
+                { date: "令和2年7月", content: "ライフサポートあさひ若江open" },
+                { date: "令和2年8月", content: "ライフサポートあさひ加納open" },
+                { date: "令和2年11月", content: "ICT化に向けての取り組み開始" },
+                { date: "令和3年2月", content: "ケアウイング始動" },
+                { date: "令和3年5月", content: "オンライン研修/お茶の水ケアサービス" },
+                { date: "令和3年6月", content: "灰塚研修施設閉鎖（オンライン研修切替の為）" },
+                { date: "令和4年3月", content: "ライフサポートあさひ若江3/1若江本町へ移転" },
+                { date: "令和4年4月", content: "ライフサポートあさひ加納4/中旬より統合" },
+                { date: "令和5年1月", content: "ライフサポートあさひ布施新規オープン" },
+                { date: "令和5年4月", content: "オンライン研修ジョブメドレーアカデミー開始" }
+            ],
+            facilities: [
+                { category: "exterior", url_pc: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80", url_mobile: "", description: "本社外観", order: 1 },
+                { category: "office", url_pc: "https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=800&q=80", url_mobile: "", description: "オフィス1", order: 1 },
+                { category: "office", url_pc: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=800&q=80", url_mobile: "", description: "オフィス2", order: 2 },
+                { category: "breakroom", url_pc: "https://images.unsplash.com/photo-1596489398285-16d4e4c9f562?auto=format&fit=crop&w=800&q=80", url_mobile: "", description: "畳の小上がり", order: 1 },
+                { category: "breakroom", url_pc: "https://images.unsplash.com/photo-1527192491265-7e15c55b1ed2?auto=format&fit=crop&w=800&q=80", url_mobile: "", description: "ランチテーブル", order: 2 },
+                { category: "breakroom", url_pc: "https://images.unsplash.com/photo-1584744982491-665216d95f8b?auto=format&fit=crop&w=800&q=80", url_mobile: "", description: "休憩スペース1", order: 3 },
+                { category: "breakroom", url_pc: "https://images.unsplash.com/photo-1606787366850-de6330128bfc?auto=format&fit=crop&w=800&q=80", url_mobile: "", description: "休憩スペース2", order: 4 },
+                { category: "breakroom", url_pc: "https://images.unsplash.com/photo-1569058242253-92a9c755a293?auto=format&fit=crop&w=800&q=80", url_mobile: "", description: "休憩スペース3", order: 5 },
+                { category: "satellite", url_pc: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80", url_mobile: "", description: "サテライトオフィス", order: 1 }
+            ],
+            companyInfo: [
+                { key: "法人名", value: "株式会社 旭" },
+                { key: "事業所名", value: "ライフサポートあさひ" },
+                { key: "郵便番号", value: "〒577-0011" },
+                { key: "住所", value: "大阪府東大阪市荒本北2丁目5-5" },
+                { key: "電話番号", value: "06-6746-7800" },
+                { key: "FAX番号", value: "06-6746-7801" },
+                { key: "メールアドレス", value: "hirayamakodai@asahi4649.com" },
+                { key: "事業内容1", value: "障害福祉サービス（居宅介護、重度訪問介護、移動支援）" },
+                { key: "事業内容2", value: "介護保険サービス（訪問介護、介護予防訪問介護）" },
+                { key: "挨拶文1", value: "平素より温かいご支援を賜り、心より御礼申し上げます。「ライフサポートあさひ」は、地域の皆様に支えていただき、おかげさまで10年を迎えることができました。スタッフ一人ひとりの真摯な姿勢、そして皆様の励ましのお言葉に支えられ、今日まで歩んでまいりましたことに深く感謝いたします。" },
+                { key: "挨拶文2", value: "私たちは\"人の手で行う介護の温かさ\"をこれからも大切にしてまいります。その一方で、事務作業や記録業務など、負担の大きい部分については\"生成AIやデジタルツールを活用することで効率化\"を図っております。" },
+                { key: "挨拶文3", value: "こうした取り組みは、スタッフが利用者様の気持ちに寄り添う時間を増やし、\"人にしかできないケア\"により一層取り組める環境づくりにつながっています。" },
+                { key: "挨拶文4", value: "今後とも、皆様に安心していただける事業所を目指し精進してまいりますので、変わらぬご愛顧のほどお願い申し上げます。" }
+            ],
+            recruitCards: [
+                { id: "helper", title: "登録ヘルパー", salary: "1,800円〜", subSalary: "社保加入 2,000円〜", benefit1: "週1時間からでもOK", benefit2: "休憩時間に飲料・軽食食べ放題", benefit3: "", colorClass: "hover:border-orange-300 ring-2 ring-orange-100/50", order: 1 },
+                { id: "helper_insured", title: "登録ヘルパー（社保加入）", salary: "2,000円〜", subSalary: "処遇改善含む", benefit1: "週1時間からでもOK", benefit2: "休憩時間に飲料・軽食食べ放題", benefit3: "", colorClass: "hover:border-amber-300 ring-2 ring-amber-100/50", order: 2 },
+                { id: "fulltime", title: "正社員", salary: "350,000円〜", subSalary: "賞与年2回 / 昇給あり", benefit1: "週休2日制", benefit2: "事務作業無し", benefit3: "休憩時間に飲料・軽食食べ放題", colorClass: "hover:border-blue-300", order: 3 },
+                { id: "intern", title: "職場体験・見学会", salary: "職場体験", subSalary: "3,000円ギフト & 昼食付", benefit1: "履歴書不要", benefit2: "見学のみOK", benefit3: "", colorClass: "hover:border-green-300", order: 4 }
+            ],
+            pageSettings: [
+                { page: "contact", key: "送信先メールアドレス", value: "hirayamakodai@asahi4649.com" },
+                { page: "contact", key: "ページタイトル", value: "お問い合わせ" },
+                { page: "contact", key: "ページ説明", value: "ご質問やご相談など、お気軽にお問い合わせください。" },
+                { page: "contact", key: "送信完了メッセージ1", value: "お問い合わせありがとうございます。" },
+                { page: "contact", key: "送信完了メッセージ2", value: "内容を確認の上、担当者よりご連絡させていただきます。" },
+                { page: "contact", key: "フォーム下部メッセージ", value: "2～3日以内にはご返事させていただきますので、しばらくお待ちください。\n本日は「ライフサポートあさひ」へお問合せいただきありがとうございました。" }
+            ]
+        };
+
+        // ==========================================
+        // Icons (Manual SVG Definitions)
+        // ==========================================
+        const Icons = {
+            Smartphone: <path d="M12 2a3 3 0 0 0-3 3v14a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3V5a3 3 0 0 0-3-3H12zm0 2h6a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" />,
+            Zap: <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />,
+            Heart: <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />,
+            ArrowRight: <path d="M5 12h14M12 5l7 7-7 7" />,
+            Menu: <g><path d="M4 6h16M4 12h16M4 18h16" /></g>,
+            X: <path d="M18 6 6 18M6 6l12 12" />,
+            TrendingUp: <g><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></g>,
+            Clock: <g><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></g>,
+            MapPin: <g><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></g>,
+            Phone: <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />,
+            CheckCircle: <g><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></g>,
+            Smile: <g><circle cx="12" cy="12" r="10" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><line x1="9" y1="9" x2="9.01" y2="9" /><line x1="15" y1="9" x2="15.01" y2="9" /></g>,
+            Users: <g><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></g>,
+            Cpu: <g><rect x="4" y="4" width="16" height="16" rx="2" /><rect x="9" y="9" width="6" height="6" /><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3" /></g>,
+            Coins: <g><circle cx="8" cy="8" r="6" /><path d="M18.09 10.37A6 6 0 1 1 10.34 18" /><path d="M7 6h1v4" /><path d="m16.71 13.88.7 .71-2.82 2.82" /></g>,
+            Bike: <g><circle cx="18.5" cy="17.5" r="3.5" /><circle cx="5.5" cy="17.5" r="3.5" /><circle cx="15" cy="5" r="1" /><path d="M12 17.5V14l-3-3 4-3 2 3h2" /></g>,
+            Briefcase: <g><rect width="20" height="14" x="2" y="7" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></g>,
+            Calendar: <g><rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><line x1="16" x2="16" y1="2" y2="6" /><line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" /></g>,
+            Award: <g><circle cx="12" cy="8" r="7" /><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" /></g>,
+            ChevronRight: <path d="m9 18 6-6-6-6" />,
+            PhoneCall: <g><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /><path d="M14.05 2a9 9 0 0 1 8 7.94" /><path d="M14.05 6A5 5 0 0 1 18 10" /></g>,
+            Building2: <g><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" /><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" /><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" /><path d="M10 6h4" /><path d="M10 10h4" /><path d="M10 14h4" /><path d="M10 18h4" /></g>,
+            Newspaper: <g><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2" /><path d="M18 14h-8" /><path d="M15 18h-5" /><path d="M10 6h8v4h-8V6Z" /></g>,
+            Gift: <g><rect x="3" y="8" width="18" height="4" rx="1" /><path d="M12 8v13" /><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" /><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.9 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5" /></g>,
+            Utensils: <g><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" /><path d="M7 2v20" /><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" /></g>,
+            ChevronLeft: <path d="m15 18-6-6 6-6" />,
+            ChevronDown: <path d="m6 9 6 6 6-6" />,
+            Accessibility: <g><circle cx="16" cy="4" r="1" /><path d="m18 19 1-7-6 1" /><path d="m5 8 3-3 5.5 3-2.36 4.68" /><path d="M8 14v9" /><path d="M15.42 9c.54.54.91 1.25.99 2.06" /></g>,
+            History: <g><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /><path d="M12 7v5l4 2" /></g>,
+            User: <g><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></g>,
+            Mail: <g><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></g>,
+            Send: <g><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></g>,
+            Loader2: <path d="M21 12a9 9 0 1 1-6.219-8.56" />,
+            CreditCard: <g><rect width="20" height="14" x="2" y="5" rx="2" /><line x1="2" x2="22" y1="10" y2="10" /></g>,
+            Sun: <g><circle cx="12" cy="12" r="4" /><path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41-1.41" /><path d="m19.07 4.93-1.41 1.41" /></g>,
+            Moon: <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />,
+            Coffee: <g><path d="M17 8h1a4 4 0 1 1 0 8h-1" /><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z" /><line x1="6" x2="6" y1="2" y2="4" /><line x1="10" x2="10" y1="2" y2="4" /><line x1="14" x2="14" y1="2" y2="4" /></g>,
+            Laptop: <path d="M20 16V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9m16 0H4m16 0 1.28 2.55a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45L4 16" />,
+            Landmark: <g><line x1="3" x2="21" y1="22" y2="22" /><line x1="6" x2="6" y1="18" y2="11" /><line x1="10" x2="10" y1="18" y2="11" /><line x1="14" x2="14" y1="18" y2="11" /><line x1="18" x2="18" y1="18" y2="11" /><polygon points="12 2 20 7 4 7" /></g>,
+            Map: <g><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" /><line x1="9" x2="9" y1="3" y2="18" /><line x1="15" x2="15" y1="6" y2="21" /></g>,
+            Image: <g><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></g>,
+            Instagram: <g><rect width="20" height="20" x="2" y="2" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" x2="17.51" y1="6.5" y2="6.5" /></g>,
+            TikTok: <path fill="currentColor" stroke="none" d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z" />,
+            Home: <g><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></g>,
+            Shield: <g><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" /></g>,
+        };
+
+        const Icon = ({ name, size = 24, className = "", style = {} }) => {
+            const content = Icons[name];
+            if (!content) return null;
+            return (
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+                    {content}
+                </svg>
+            );
+        };
+
+        const Smartphone = (p) => <Icon name="Smartphone" {...p} />;
+        const Zap = (p) => <Icon name="Zap" {...p} />;
+        const Heart = (p) => <Icon name="Heart" {...p} />;
+        const ArrowRight = (p) => <Icon name="ArrowRight" {...p} />;
+        const Menu = (p) => <Icon name="Menu" {...p} />;
+        const X = (p) => <Icon name="X" {...p} />;
+        const TrendingUp = (p) => <Icon name="TrendingUp" {...p} />;
+        const Clock = (p) => <Icon name="Clock" {...p} />;
+        const MapPin = (p) => <Icon name="MapPin" {...p} />;
+        const Phone = (p) => <Icon name="Phone" {...p} />;
+        const CheckCircle = (p) => <Icon name="CheckCircle" {...p} />;
+        const Smile = (p) => <Icon name="Smile" {...p} />;
+        const Users = (p) => <Icon name="Users" {...p} />;
+        const Cpu = (p) => <Icon name="Cpu" {...p} />;
+        const Coins = (p) => <Icon name="Coins" {...p} />;
+        const Bike = (p) => <Icon name="Bike" {...p} />;
+        const Briefcase = (p) => <Icon name="Briefcase" {...p} />;
+        const Calendar = (p) => <Icon name="Calendar" {...p} />;
+        const Award = (p) => <Icon name="Award" {...p} />;
+        const ChevronRight = (p) => <Icon name="ChevronRight" {...p} />;
+        const PhoneCall = (p) => <Icon name="PhoneCall" {...p} />;
+        const Building2 = (p) => <Icon name="Building2" {...p} />;
+        const Newspaper = (p) => <Icon name="Newspaper" {...p} />;
+        const Gift = (p) => <Icon name="Gift" {...p} />;
+        const Utensils = (p) => <Icon name="Utensils" {...p} />;
+        const ChevronLeft = (p) => <Icon name="ChevronLeft" {...p} />;
+        const ChevronDown = (p) => <Icon name="ChevronDown" {...p} />;
+        const Accessibility = (p) => <Icon name="Accessibility" {...p} />;
+        const History = (p) => <Icon name="History" {...p} />;
+        const User = (p) => <Icon name="User" {...p} />;
+        const Mail = (p) => <Icon name="Mail" {...p} />;
+        const Send = (p) => <Icon name="Send" {...p} />;
+        const Loader2 = (p) => <Icon name="Loader2" {...p} />;
+        const CreditCard = (p) => <Icon name="CreditCard" {...p} />;
+        const Sun = (p) => <Icon name="Sun" {...p} />;
+        const Moon = (p) => <Icon name="Moon" {...p} />;
+        const Coffee = (p) => <Icon name="Coffee" {...p} />;
+        const Laptop = (p) => <Icon name="Laptop" {...p} />;
+        const Landmark = (p) => <Icon name="Landmark" {...p} />;
+        const MapIcon = (p) => <Icon name="Map" {...p} />;
+        const ImageIcon = (p) => <Icon name="Image" {...p} />;
+        const Instagram = (p) => <Icon name="Instagram" {...p} />;
+        const TikTok = (p) => <Icon name="TikTok" {...p} />;
+        const Home = (p) => <Icon name="Home" {...p} />;
+        const Shield = (p) => <Icon name="Shield" {...p} />;
+
+        // Google Driveの画像URLを直接リンクに変換するヘルパー関数（グローバル定義）
+        const getOptimizedImageUrl = (url) => {
+            if (!url) return '';
+            // 既に変換済みか、Drive以外のURLならそのまま
+            if (!url.includes('drive.google.com')) return url;
+
+            // /file/d/ID/view 形式または id=ID 形式からのID抽出
+            const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
+            if (match && match[1]) {
+                // サムネイル生成APIを使用（sz=w2000で高画質化）
+                return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w2000`;
+            }
+            return url;
+        };
+
+        // レスポンシブ画像選択ヘルパー関数
+        // 画面幅768px未満 → モバイル画像、768px以上 → PC画像
+        // モバイル画像がない場合はPC画像にフォールバック
+        const getResponsiveImageUrl = (pcUrl, mobileUrl) => {
+            const isMobile = window.innerWidth < 768;
+            // モバイルでmobileUrlがある場合はそれを使用、なければpcUrlにフォールバック
+            const selectedUrl = isMobile && mobileUrl ? mobileUrl : pcUrl;
+            return getOptimizedImageUrl(selectedUrl || '');
+        };
+
+        // 画像データから適切なURLを取得するヘルパー（新旧形式両対応）
+        // 新形式: { url_pc, url_mobile } または { photo_pc, photo_mobile }
+        // 旧形式: { url } または { photo }（後方互換）
+        const getImageUrl = (data, pcKey = 'url_pc', mobileKey = 'url_mobile', fallbackKey = 'url') => {
+            const pcUrl = data[pcKey] || data[fallbackKey] || '';
+            const mobileUrl = data[mobileKey] || '';
+            return getResponsiveImageUrl(pcUrl, mobileUrl);
+        };
+
+        // URLが動画ファイルかどうかを判定
+        const isVideoUrl = (url) => {
+            if (!url) return false;
+            return /\.(mp4|webm|mov|ogg)(\?|$)/i.test(url);
+        };
+
+        const Logo = ({ textColor = "text-slate-900" }) => (
+            <div className="flex items-center gap-1.5 md:gap-2">
+                <img src="logo.png" alt="ライフサポートあさひ" className="h-8 w-8 md:h-9 md:w-9 object-contain" />
+                <span className="text-base md:text-2xl font-black tracking-wide bg-gradient-to-r from-orange-500 via-orange-400 to-amber-500 bg-clip-text text-transparent transition-all duration-300 whitespace-nowrap" style={{ textShadow: 'none', letterSpacing: '0.05em' }}>ライフサポートあさひ</span>
+            </div>
+        );
+
+        const GradientText = ({ children, className = "" }) => (
+            <span className={`bg-clip-text text-transparent bg-gradient-to-r from-orange-600 via-indigo-900 to-slate-900 ${className}`}>{children}</span>
+        );
+
+        const IconGradients = () => (
+            <svg width="0" height="0" className="absolute">
+                <defs>
+                    <linearGradient id="orange-gradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#F97316" /><stop offset="100%" stopColor="#DB2777" /></linearGradient>
+                    <linearGradient id="blue-gradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#3B82F6" /><stop offset="100%" stopColor="#4F46E5" /></linearGradient>
+                    <linearGradient id="green-gradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#10B981" /><stop offset="100%" stopColor="#06B6D4" /></linearGradient>
+                    <linearGradient id="purple-gradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#A855F7" /><stop offset="100%" stopColor="#EC4899" /></linearGradient>
+                    <linearGradient id="gold-gradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#FBBF24" /><stop offset="100%" stopColor="#F59E0B" /></linearGradient>
+                    <linearGradient id="instagram-gradient" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stopColor="#FCAF45" /><stop offset="25%" stopColor="#F77737" /><stop offset="50%" stopColor="#E1306C" /><stop offset="75%" stopColor="#C13584" /><stop offset="100%" stopColor="#833AB4" /></linearGradient>
+                </defs>
+            </svg>
+        );
+
+        // Instagram icon with gradient - matches official brand colors
+        const InstagramGradient = ({ size = 24 }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="url(#instagram-gradient)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect width="18" height="18" x="3" y="3" rx="5" ry="5" />
+                <circle cx="12" cy="12" r="4" />
+                <circle cx="17.5" cy="6.5" r="1.5" fill="url(#instagram-gradient)" stroke="none" />
+            </svg>
+        );
+
+        const TikTokGlitch = ({ size = 24 }) => (
+            <div style={{ position: 'relative', width: size, height: size }}>
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" style={{ position: 'absolute', left: '-1px', top: '0' }}>
+                    <path fill="#25F4EE" stroke="none" d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z" />
+                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" style={{ position: 'absolute', left: '1px', top: '0' }}>
+                    <path fill="#FE2C55" stroke="none" d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z" />
+                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" style={{ position: 'absolute', left: '0', top: '0' }}>
+                    <path fill="#000000" stroke="none" d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z" />
+                </svg>
+            </div>
+        );
+
+        // YouTube icon (Horizontal rectangle with red background and white play button)
+        const YoutubeButton = ({ size = 26 }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size * 1.4} height={size} viewBox="0 0 28 20" fill="none">
+                <rect x="0" y="0" width="28" height="20" rx="5" fill="#FF0000" />
+                <path d="M11 6L19 10L11 14V6Z" fill="white" />
+            </svg>
+        );
+
+        const GlobalBackground = () => (
+            <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none bg-[#F5F7FA]">
+                <div className="absolute inset-0 bg-gradient-to-b from-orange-50/50 via-white to-blue-50/30"></div>
+                <div className="absolute top-[-10%] right-[-10%] w-[80vw] h-[80vw] bg-orange-200 rounded-full blur-[100px] opacity-20 mix-blend-multiply animate-pulse" style={{ animationDuration: '15s' }}></div>
+                <div className="absolute bottom-[-10%] left-[-10%] w-[70vw] h-[70vw] bg-blue-200 rounded-full blur-[100px] opacity-20 mix-blend-multiply animate-pulse" style={{ animationDuration: '20s' }}></div>
+                <div className="absolute top-[40%] left-[30%] w-[40vw] h-[40vw] bg-white rounded-full blur-[80px] opacity-60"></div>
+            </div>
+        );
+
+        const Footer = ({ onNavigate }) => (
+            <footer className="bg-white text-slate-800 py-4 mt-0 border-t border-slate-200">
+                <div className="container mx-auto px-6 text-center md:text-left">
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div className="flex items-center gap-4"><div className="flex items-center gap-2"><img src="logo.png" alt="株式会社旭" className="h-9 w-9 object-contain" /><span className="text-2xl font-black tracking-wide bg-gradient-to-r from-orange-500 via-orange-400 to-amber-500 bg-clip-text text-transparent">株式会社旭</span></div><p className="hidden md:block text-[10px] text-slate-600 font-bold border-l-2 border-slate-300 pl-4 leading-tight">大阪府東大阪市荒本北2丁目5-5<br />訪問介護・障がい福祉サービス事業</p></div>
+                        <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs font-black text-slate-800">
+                            <button onClick={() => onNavigate('home')} className="hover:text-slate-600 transition-colors">トップページ</button>
+                            <button onClick={() => onNavigate('company')} className="hover:text-slate-600 transition-colors">会社概要</button>
+                            <button onClick={() => onNavigate('facilities')} className="hover:text-slate-600 transition-colors">事業所一覧</button>
+                            <button onClick={() => onNavigate('recruit')} className="hover:text-slate-600 transition-colors">求人一覧</button>
+                            <button onClick={() => onNavigate('contact')} className="hover:text-slate-600 transition-colors">お問い合わせ</button>
+                        </div>
+                    </div>
+                    <div className="mt-4 pt-2 border-t border-slate-200 text-center text-[10px] text-slate-500 font-medium">&copy; {new Date().getFullYear()} Asahi Co., Ltd. All Rights Reserved.</div>
+                </div>
+            </footer>
+        );
+
+        const FloatingPhoneButton = () => (
+            <a href="tel:06-6746-7800" className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50 flex items-center gap-2 md:gap-3 bg-slate-900 text-white px-4 py-3 md:px-6 md:py-4 rounded-full shadow-2xl hover:bg-slate-800 hover:scale-105 active:scale-95 transition-all w-auto">
+                <div className="animate-pulse bg-white/20 p-1.5 rounded-full shrink-0"><PhoneCall size={20} /></div>
+                <div className="text-left leading-tight"><p className="text-[8px] md:text-[10px] font-bold opacity-70 text-orange-100">迷ったら電話！</p><p className="text-sm md:text-base font-bold">今すぐ相談</p></div>
+            </a>
+        );
+
+        const ImageModal = ({ src, alt, onClose }) => {
+            if (!src) return null;
+            return (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in duration-300" onClick={onClose}>
+                    <button onClick={onClose} className="absolute top-4 right-4 text-white/70 hover:text-white p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors z-50"><X size={32} /></button>
+                    <div className="relative max-w-5xl w-full max-h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                        <img src={src} alt={alt || "Expanded view"} className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-300" />
+                    </div>
+                </div>
+            );
+        };
+
+        const NewsWindow = ({ newsData = [], onNavigate }) => {
+            // 最新の4件のみ表示
+            const newsItems = newsData.slice(0, 4);
+            return (
+                <div className="w-full h-full bg-white/80 backdrop-blur-md rounded-3xl shadow-lg border border-white/40 overflow-hidden flex flex-col min-h-[320px]">
+                    <div className="bg-slate-100/80 border-b border-slate-200 px-4 py-3 flex items-center justify-between shrink-0">
+                        <div className="flex gap-1.5"><div className="w-3 h-3 rounded-full bg-[#FF5F57] shadow-sm"></div><div className="w-3 h-3 rounded-full bg-[#FEBC2E] shadow-sm"></div><div className="w-3 h-3 rounded-full bg-[#28C840] shadow-sm"></div></div>
+                        <div className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><Newspaper size={12} /> NEWS</div><div className="w-10"></div>
+                    </div>
+                    <div className="p-3 flex-grow flex flex-col">
+                        <ul className="divide-y divide-slate-100 flex-grow">
+                            {newsItems.map((item, index) => (
+                                <li key={index} className="group flex flex-col gap-1 px-3 py-3 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer" onClick={onNavigate}>
+                                    <div className="flex items-center gap-2"><span className="text-xs font-mono text-slate-500">{item.date}</span><span className={`text-[10px] px-2 py-0.5 rounded-md font-bold border ${item.tag === '重要' ? 'bg-red-50 text-red-500 border-red-100' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>{item.tag}</span></div>
+                                    <p className="text-sm font-bold text-slate-800 group-hover:text-orange-600 transition-colors line-clamp-1">{item.text}</p>
+                                </li>
+                            ))}
+                        </ul>
+                        <div className="pt-2 text-center border-t border-slate-50 mt-auto"><button onClick={onNavigate} className="text-xs font-bold text-slate-400 hover:text-orange-500 flex items-center justify-center gap-1 mx-auto transition-colors py-1">一覧を見る <ChevronRight size={12} /></button></div>
+                    </div>
+                </div>
+            );
+        };
+
+        const PhotoSlider = ({ sliderData = [] }) => {
+            const [currentIndex, setCurrentIndex] = useState(0);
+            const images = sliderData.length > 0 ? sliderData : DEFAULT_DATA.slider;
+            useEffect(() => { const timer = setInterval(() => { setCurrentIndex((prev) => (prev + 1) % images.length); }, 5000); return () => clearInterval(timer); }, [images.length]);
+            const nextSlide = () => setCurrentIndex((prev) => (prev + 1) % images.length);
+            const prevSlide = () => setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+            return (
+                <div className="relative w-full aspect-video md:aspect-auto md:h-full rounded-3xl overflow-hidden shadow-xl border border-white/50 group">
+                    {images.map((img, index) => (
+                        <div key={index} className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentIndex ? 'opacity-100' : 'opacity-0'}`}>
+                            <img src={getImageUrl(img, 'url_pc', 'url_mobile', 'url')} alt={img.label} className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-transparent to-transparent"></div>
+                            <div className="absolute bottom-4 left-4 md:bottom-8 md:left-8 text-white transform transition-transform duration-700 translate-y-0">
+                                <span className="bg-white/20 backdrop-blur-md text-white text-[8px] md:text-[10px] font-bold px-2 md:px-3 py-1 rounded-full mb-2 md:mb-3 inline-block border border-white/30">Office View</span>
+                                <h3 className="text-base md:text-2xl lg:text-4xl font-black tracking-tight drop-shadow-lg whitespace-pre-line"><span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-orange-100 to-white">{img.label}</span></h3>
+                            </div>
+                        </div>
+                    ))}
+                    <button onClick={prevSlide} className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 bg-white/20 backdrop-blur-md p-2 md:p-3 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/40"><ChevronLeft size={16} className="md:w-6 md:h-6" /></button>
+                    <button onClick={nextSlide} className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 bg-white/20 backdrop-blur-md p-2 md:p-3 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/40"><ChevronRight size={16} className="md:w-6 md:h-6" /></button>
+                    <div className="absolute bottom-3 md:bottom-6 right-4 md:right-8 flex gap-1 md:gap-2">{images.map((_, idx) => (<button key={idx} onClick={() => setCurrentIndex(idx)} className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full transition-all ${idx === currentIndex ? 'bg-white w-6 md:w-8' : 'bg-white/50'}`} />))}</div>
+                </div>
+            );
+        };
+
+        const SalaryHeroCard = ({ title, salary, subSalary, benefits, colorClass, onClick, className = "" }) => {
+            // "（実績ベース）" などの注釈を改行して小さく表示するフォーマッター
+            const formatBenefitText = (text) => {
+                if (typeof text !== 'string') return text;
+                if (text.includes('実績ベース')) {
+                    const parts = text.split(/([（(]実績ベース[)）])/);
+                    return parts.reduce((acc, part, i) => {
+                        if (part.match(/[（(]実績ベース[)）]/)) {
+                            return [...acc, <br key={`br-${i}`} />, <span key={i} className="text-[10px] opacity-80">{part}</span>];
+                        }
+                        return [...acc, part];
+                    }, []);
+                }
+                return text;
+            };
+
+            return (
+                <button onClick={onClick} className={`relative w-full h-full group overflow-hidden bg-white hover:bg-slate-50 transition-all duration-300 text-left p-4 md:p-5 rounded-xl shadow-sm hover:shadow-md flex flex-col md:flex-col ${colorClass} ${className}`}>
+                    {/* スマホ: 横並び / PC: 縦並び */}
+                    <div className="flex-1 flex flex-row md:flex-col items-center gap-0 w-full">
+                        {/* 左側: タイトル・金額 (幅固定で位置を統一) */}
+                        <div className="w-[45%] shrink-0 flex flex-col justify-center md:border-0 md:pr-0 md:w-full">
+                            <div className="mb-1 md:mb-2"><h3 className="text-sm md:text-base font-black tracking-tight leading-none whitespace-nowrap"><GradientText>{title}</GradientText></h3></div>
+                            <div className="flex flex-col"><div className="flex items-baseline gap-1"><span className="text-2xl md:text-3xl font-black tracking-tighter text-slate-800 leading-none whitespace-nowrap">{salary}</span></div>{subSalary && (<p className="text-[10px] md:text-xs font-bold text-slate-500 mt-1 md:mt-1.5 line-clamp-1">{subSalary}</p>)}</div>
+                        </div>
+                        {/* 右側(スマホ): benefits (折り返し許可・見切れ防止) */}
+                        {benefits && benefits.length > 0 && (
+                            <div className="flex md:hidden flex-col justify-center flex-1 min-w-0 pl-3">
+                                <ul className="space-y-1 w-full">{benefits.slice(0, 2).map((benefit, idx) => (<li key={idx} className="text-[10px] font-bold text-slate-400 flex items-start gap-1 leading-tight"><CheckCircle size={10} className="text-orange-400 shrink-0 mt-0.5" /><span>{formatBenefitText(benefit)}</span></li>))}</ul>
+                            </div>
+                        )}
+                    </div>
+                    {/* PC: 下部にbenefits */}
+                    {benefits && benefits.length > 0 && (<div className="hidden md:block mt-3 pt-3 border-t border-slate-100"><ul className="space-y-1.5">{benefits.slice(0, 2).map((benefit, idx) => (<li key={idx} className="text-xs font-bold text-slate-400 flex items-center gap-1.5 truncate"><CheckCircle size={12} className="text-orange-400 shrink-0" />{formatBenefitText(benefit)}</li>))}</ul></div>)}
+                    <div className="absolute top-3 right-3 h-6 w-6 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-orange-50 transition-colors"><ArrowRight size={12} className="text-slate-300 group-hover:text-orange-500 transition-colors" /></div>
+                </button>
+            );
+        };
+
+        const StaffCard = ({ name, role, catchphrase, description, photo, photo_pc, photo_mobile, isDetailed = false, prevJob, holiday, favorite, onClick }) => {
+            // photo_pc/photo_mobile形式と旧photo形式の両方に対応
+            const photoUrl = getResponsiveImageUrl(photo_pc || photo, photo_mobile);
+
+            return (
+                <div onClick={onClick} className={`group relative w-full overflow-hidden rounded-3xl bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-500 hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 flex flex-col border border-slate-50 ${isDetailed ? 'h-auto' : 'h-full'} ${onClick ? 'cursor-pointer' : ''}`}>
+                    <div className="relative h-64 w-full bg-slate-50 shrink-0 overflow-hidden">
+                        {photoUrl ? (
+                            <div className="w-full h-full relative">
+                                <img src={photoUrl} alt={name} className="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-110" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent"></div>
+                            </div>
+                        ) : (
+                            <div className="w-full h-full relative">
+                                <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(#cbd5e1 1px, transparent 1px)', backgroundSize: '24px 24px', opacity: 0.3 }}></div>
+                                <div className="flex h-full items-center justify-center text-slate-300 font-mono text-sm font-bold">[IMG: {name}]</div>
+                                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent"></div>
+                            </div>
+                        )}
+                        <div className="absolute bottom-4 left-4 text-white"><p className="text-[10px] font-bold tracking-widest text-orange-300 uppercase mb-1 bg-black/20 backdrop-blur-sm px-2 py-1 rounded-md inline-block">{role}</p><h3 className="text-xl font-bold drop-shadow-sm">{name}</h3></div>
+                    </div>
+                    <div className="p-6 bg-white flex-grow">
+                        <p className="text-sm font-bold leading-relaxed mb-3 text-slate-800">"{catchphrase}"</p>
+                        <p className="text-xs text-slate-500 leading-relaxed">{description}</p>
+                        {isDetailed && (<div className="mt-4 pt-4 border-t border-slate-100 space-y-4">{prevJob && (<div><h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">前職</h4><p className="text-xs text-slate-600 font-medium">{prevJob}</p></div>)}{holiday && (<div><h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">休日の過ごし方</h4><p className="text-xs text-slate-600 font-medium">{holiday}</p></div>)}{favorite && (<div><h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">会社の好きな所</h4><p className="text-xs text-slate-600 font-medium">{favorite}</p></div>)}</div>)}
+                    </div>
+                </div>
+            );
+        };
+
+        const SalaryCard = ({ id, title, amount, sub = "", features = [], isHighlight = false, isIntern = false, onClick }) => {
+            // "（実績ベース）" などの注釈を改行して小さく表示するフォーマッター
+            const formatBenefitText = (text) => {
+                if (typeof text !== 'string') return text;
+                if (text.includes('実績ベース')) {
+                    const parts = text.split(/([（(]実績ベース[)）])/);
+                    return parts.reduce((acc, part, i) => {
+                        if (part.match(/[（(]実績ベース[)）]/)) {
+                            return [...acc, <br key={`br-${i}`} />, <span key={i} className="text-[10px] opacity-80">{part}</span>];
+                        }
+                        return [...acc, part];
+                    }, []);
+                }
+                return text;
+            };
+
+            return (
+                <div id={id} className={`relative flex flex-col rounded-3xl p-8 transition-all duration-500 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.12)] hover:-translate-y-2`}>
+                    {isHighlight && (<div className="absolute top-0 right-0 bg-orange-500 text-white text-[10px] font-bold px-4 py-2 rounded-bl-2xl rounded-tr-2xl shadow-sm">RECOMMENDED</div>)}
+                    {isIntern && (<div className="absolute top-0 right-0 bg-slate-900 text-white text-[10px] font-bold px-4 py-2 rounded-bl-2xl rounded-tr-2xl shadow-sm">未経験歓迎</div>)}
+                    <h3 className="text-sm font-bold uppercase tracking-wider mb-3 text-orange-600">{title}</h3>
+                    <div className="mb-6 pb-6 border-b border-slate-50">
+                        {isIntern ? (<div className="flex items-center gap-1.5 flex-wrap"><span className="text-2xl font-black tracking-tight text-slate-900">{amount}</span></div>) : (<div className="flex items-baseline flex-wrap gap-2"><span className="text-4xl font-black tracking-tighter text-slate-900">{amount}</span><span className="text-xs font-bold text-slate-400">{sub}</span></div>)}
+                        {!isIntern && sub && sub.includes('移動支援') && (<p className="text-[10px] text-slate-400 mt-2 font-medium bg-slate-50 inline-block px-2 py-1 rounded">※条件により変動あり</p>)}
+                    </div>
+                    <ul className="mb-8 flex-1 space-y-4">{(Array.isArray(features) ? features : []).map((feat, idx) => (<li key={idx} className="flex items-start"><div className="mt-0.5 mr-3 p-0.5 rounded-full bg-orange-100"><CheckCircle className="h-3.5 w-3.5 text-orange-600" /></div><span className="text-sm font-bold text-slate-600">{formatBenefitText(feat)}</span></li>))}</ul>
+                    <button onClick={onClick} className="mt-auto w-full rounded-2xl py-4 text-sm font-bold transition-all text-white shadow-lg active:scale-95 bg-slate-900 hover:bg-slate-800 shadow-slate-200">詳細を見る</button>
+                </div>
+            );
+        };
+
+        const StatCard = ({ icon: Icon, title, value, unit, subText, className = "", gradientId = "orange-gradient", titleClass = "text-xs" }) => (
+            <div className={`bg-white p-6 rounded-2xl shadow-[0_4px_15px_rgb(0,0,0,0.03)] hover:shadow-[0_8px_25px_rgb(0,0,0,0.06)] transition-all duration-300 flex flex-row items-center justify-between ${className} h-full`}>
+                <div><h4 className={`${titleClass} font-black text-slate-400 uppercase tracking-widest mb-2`}>{title}</h4><div className="flex items-baseline gap-1"><span className="text-4xl font-black text-slate-800 tracking-tighter">{value}</span><span className="text-base font-bold text-slate-500">{unit}</span></div>{subText && <p className="text-xs text-slate-500 mt-2 font-bold leading-tight">{subText}</p>}</div>
+                <div className="p-3 rounded-2xl bg-slate-50 group"><Icon size={28} style={{ stroke: `url(#${gradientId})` }} /></div>
+            </div>
+        );
+
+        const GrowthLineChart = () => (
+            <div className="bg-white p-5 rounded-3xl shadow-[0_4px_15px_rgb(0,0,0,0.03)] hover:shadow-[0_8px_25px_rgb(0,0,0,0.06)] transition-all duration-300 h-full flex flex-col justify-between border border-white/50">
+                <div className="flex items-center gap-3 mb-2"><div className="p-2 rounded-2xl bg-slate-50"><TrendingUp size={20} style={{ stroke: "url(#green-gradient)" }} /></div><h4 className="text-xs font-bold text-slate-500">従業員増加率</h4></div>
+                <div className="h-24 w-full bg-slate-50/50 rounded-2xl flex items-end justify-between px-4 pb-0 relative overflow-hidden"><div className="absolute inset-0 opacity-10 bg-gradient-to-t from-green-100 to-transparent"></div><div className="w-1/6 h-[20%] bg-slate-200 rounded-t-md"></div><div className="w-1/6 h-[35%] bg-slate-200 rounded-t-md"></div><div className="w-1/6 h-[50%] bg-slate-300 rounded-t-md"></div><div className="w-1/6 h-[70%] bg-green-100 rounded-t-md"></div><div className="w-1/6 h-[85%] bg-green-200 rounded-t-md"></div><div className="w-1/6 h-[100%] bg-green-400 rounded-t-md shadow-lg shadow-green-100"></div></div>
+                <p className="text-[10px] text-right text-slate-400 mt-2 font-bold">右肩上がりで成長中</p>
+            </div>
+        );
+
+        const AreaPieChart = ({ className = "", areaData = [] }) => {
+            // デフォルト値（スプレッドシートにデータがない場合）
+            const defaultAreas = [
+                { name: '東大阪', value: 67, color: '#3B82F6' },
+                { name: '大東', value: 9, color: '#1E293B' },
+                { name: '大阪', value: 9, color: '#94A3B8' },
+                { name: '他', value: 16, color: '#E2E8F0' }
+            ];
+            const areas = areaData.length > 0 ? areaData : defaultAreas;
+
+            // conic-gradientを動的に生成
+            let cumulative = 0;
+            const gradientStops = areas.map(area => {
+                const start = cumulative;
+                cumulative += area.value;
+                return `${area.color} ${start}% ${cumulative}%`;
+            }).join(', ');
+
+            return (
+                <div className={`bg-white p-6 rounded-3xl shadow-[0_4px_15px_rgb(0,0,0,0.03)] hover:shadow-[0_8px_25px_rgb(0,0,0,0.06)] transition-all duration-300 flex items-center gap-6 h-full border border-white/50 ${className}`}>
+                    <div className="shrink-0 relative w-20 h-20 rounded-full shadow-inner" style={{ background: `conic-gradient(${gradientStops})` }}><div className="absolute inset-0 m-auto w-10 h-10 bg-white rounded-full shadow-sm"></div></div>
+                    <div className="flex-1"><h4 className="font-black text-slate-700 mb-3 flex items-center gap-2 text-sm uppercase tracking-wider"><MapPin size={16} style={{ stroke: "url(#blue-gradient)" }} /> 訪問エリア</h4><div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs font-bold text-slate-600">{areas.map((area, idx) => (<div key={idx} className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: area.color }}></div><span>{area.name} {area.value}%</span></div>))}</div></div>
+                </div>
+            );
+        };
+
+        const SatelliteCard = ({ title, address, access, link, images, imageSrc, setSelectedImage }) => (
+            <div className="bg-white rounded-2xl overflow-hidden shadow-lg border border-slate-100 flex flex-col h-full group hover:shadow-xl transition-all duration-300">
+                <div className="w-full aspect-video md:aspect-auto md:h-40 overflow-hidden relative cursor-pointer" onClick={() => setSelectedImage(imageSrc || images.satellite)}>
+                    <div className="absolute top-3 left-3 bg-slate-900/80 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded z-10">面接・研修施設</div>
+                    <img src={imageSrc || images.satellite} alt={title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center"><div className="bg-white/20 backdrop-blur-md p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity transform scale-90 group-hover:scale-100"><ImageIcon size={20} className="text-white" /></div></div>
+                </div>
+                <div className="p-5 flex-grow flex flex-col">
+                    <h4 className="font-bold text-lg text-slate-800 mb-1 flex items-center gap-2"><Building2 size={18} className="text-orange-500" /> {title}</h4>
+                    <div className="space-y-2 mt-2 text-sm text-slate-600 flex-grow"><p className="flex items-start gap-2"><MapPin size={14} className="mt-1 shrink-0 text-slate-400" />{address}</p><p className="flex items-start gap-2"><Landmark size={14} className="mt-1 shrink-0 text-slate-400" /><span className="font-bold text-orange-600">{access}</span></p></div>
+                    <a href={link} target="_blank" rel="noopener noreferrer" className="mt-4 w-full py-2 rounded-xl bg-slate-50 text-slate-600 font-bold text-xs flex items-center justify-center gap-2 hover:bg-orange-50 hover:text-orange-600 transition-colors border border-slate-100"><MapIcon size={14} /> 地図を見る</a>
+                </div>
+            </div>
+        );
+
+        // --- Detail Cards ---
+
+        const JobDetailCard = ({ onClose, data = [] }) => {
+            // スプレッドシートの値を安全に取得するヘルパー関数
+            const getValue = (key, defaultValue = '') => {
+                const item = data.find(d => d.key === key);
+                return item ? item.value : defaultValue;
+            };
+
+            const salary = getValue('月給', '350,000円～');
+            const salaryAvg = getValue('月平均', '38.6万');
+            const bonusTag = getValue('タグ1', '賞与年2回');
+            const qualTag = getValue('タグ2', '要資格：初任者研修・原付免許');
+            const description = getValue('仕事内容', '利用者様宅での身体介護・生活援助、登録ヘルパーへの指導・サポート。ICTタグ＆スマホ記録ソフト「ケアウイング」導入済みで事務作業が無いのでサービスの空き時間はゆっくり休めます。');
+
+            const baseSalary = getValue('基本給', '155,000円');
+            const benefit = getValue('処遇改善', '100,000円');
+            const fixedOvertime = getValue('固定残業', '70,000円');
+            const attendance = getValue('皆勤手当', '20,000円');
+            const transport = getValue('移動手当') || getValue('通勤手当', '5,000円');
+
+            const qualAllowance = getValue('資格手当', '5,000円〜10,000円');
+            const tenureAllowance = getValue('勤続手当', '1年毎に5,000円UP');
+            const positionAllowance = getValue('役職手当', '2,000円～235,000円');
+            const overtimeAllowance = getValue('残業手当', '2,000円～/1h (30時間超)');
+            const nightAllowance = getValue('夜朝手当', '300円/1h (18時～8時)');
+            const sundayAllowance = getValue('日曜手当', '1,000円/1h');
+
+            const workingHours = getValue('勤務時間', '7:00 〜 22:00 (変形労働時間制)');
+            const laborHours = getValue('月間労働', '160h〜177h');
+            const holidays = getValue('休日', '週休2日制 (希望考慮)');
+            const paidLeave = getValue('有給', '年次有給休暇 / 年末年始・夏季休暇');
+
+            const welfareTags = getValue('福利厚生', '社保完備,資格取得全額支援,研修制度,バイク貸出,健康診断,賠償責任保険').split(',');
+            const foodText = 'ちょっとしたコンビニぐらいの飲料やインスタント食品、冷凍、冷蔵食品も休憩中はすべて食べ飲み放題です。';
+
+            // 給与値から末尾の〜を分離するヘルパー関数
+            const parseSalary = (value) => {
+                if (!value) return { amount: '', suffix: '' };
+                const trimmed = value.trim();
+                if (trimmed.endsWith('〜') || trimmed.endsWith('～') || trimmed.endsWith('~')) {
+                    return { amount: trimmed.slice(0, -1), suffix: '〜' };
+                }
+                return { amount: trimmed, suffix: '' };
+            };
+
+            return (
+                <div id="job-detail-card" className="scroll-mt-32 max-w-3xl mx-auto mt-8 mb-16 rounded-2xl overflow-hidden shadow-2xl border border-white/60 bg-white/95 backdrop-blur-xl animate-[popup_0.5s_cubic-bezier(0.22,1,0.36,1)_forwards]"><style>{`@keyframes popup { 0% { transform: scale(0.9); opacity: 0; } 60% { transform: scale(1.02); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }`}</style><div className="bg-slate-100/90 border-b border-slate-200 px-4 py-3 flex items-center justify-between shrink-0"><div className="flex gap-1.5 cursor-pointer" onClick={onClose} title="閉じる"><div className="w-3 h-3 rounded-full bg-[#FF5F57] shadow-sm hover:bg-[#FF5F57]/80 transition-colors flex items-center justify-center group"><X size={8} className="text-black/50 opacity-0 group-hover:opacity-100" /></div><div className="w-3 h-3 rounded-full bg-[#FEBC2E] shadow-sm"></div><div className="w-3 h-3 rounded-full bg-[#28C840] shadow-sm"></div></div><div className="text-xl font-bold text-slate-700 flex items-center gap-1"><Briefcase size={18} /> 正社員</div><div className="w-10 text-right"><button onClick={onClose} className="text-xs font-bold text-slate-400 hover:text-slate-600">CLOSE</button></div></div><div className="p-6 md:p-8"><div className="flex flex-col md:flex-row items-start justify-between gap-6 border-b border-slate-100 pb-6 mb-6"><div className="w-full md:w-auto"><div className="flex flex-wrap items-baseline gap-2 mb-2"><span className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-800 tracking-tight">{salary}</span><span className="text-sm sm:text-base font-bold text-slate-500"> (月平均 {salaryAvg})</span></div><div className="flex flex-wrap gap-2 text-xs sm:text-sm font-bold text-slate-600"><span className="bg-orange-50 text-orange-700 px-2.5 py-1 rounded-lg border border-orange-100">{bonusTag}</span><span className="flex items-center gap-1 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100"><CheckCircle size={14} className="text-green-500" /> {qualTag}</span></div></div><div className="flex-1 w-full bg-slate-50 border border-slate-100 rounded-xl p-4"><h4 className="font-bold text-slate-700 mb-2 flex items-center gap-2 text-sm"><div className="p-1 bg-purple-100 text-purple-600 rounded"><Briefcase size={14} /></div> 仕事内容</h4><p className="text-xs text-slate-600 leading-relaxed font-medium">{description}</p></div></div><div className="grid md:grid-cols-2 gap-6 md:gap-10 text-sm"><div><h4 className="font-bold text-slate-700 mb-3 flex items-center gap-1 text-base"><CreditCard size={16} className="text-blue-500" /> 給与内訳</h4><ul className="space-y-2 text-slate-600 mb-4"><li className="flex justify-between items-center border-b border-slate-100 pb-1"><span>基本給</span><div className="flex items-center gap-1 w-36 justify-end"><span className="font-bold tabular-nums">{parseSalary(baseSalary).amount}</span><span className="text-red-500 text-xs font-bold w-6 text-center">※1</span></div></li><li className="flex justify-between items-center border-b border-slate-100 pb-1"><span>処遇改善</span><div className="flex items-center gap-1 w-36 justify-end"><span className="font-bold tabular-nums">{parseSalary(benefit).amount}</span><span className="text-slate-400 text-xs font-bold w-6 text-center">{parseSalary(benefit).suffix}</span></div></li><li className="flex justify-between items-center border-b border-slate-100 pb-1"><span>固定残業(30h)</span><div className="flex items-center gap-1 w-36 justify-end"><span className="font-bold tabular-nums">{parseSalary(fixedOvertime).amount}</span><span className="text-slate-400 text-xs font-bold w-6 text-center">{parseSalary(fixedOvertime).suffix}</span></div></li><li className="flex justify-between items-center border-b border-slate-100 pb-1"><span>皆勤手当</span><div className="flex items-center gap-1 w-36 justify-end"><span className="font-bold tabular-nums">{parseSalary(attendance).amount}</span><span className="text-slate-400 text-xs font-bold w-6 text-center">{parseSalary(attendance).suffix}</span></div></li><li className="flex justify-between items-center border-b border-slate-100 pb-1"><span>移動手当</span><div className="flex items-center gap-1 w-36 justify-end"><span className="font-bold tabular-nums">{parseSalary(transport).amount}</span><span className="text-red-500 text-xs font-bold w-6 text-center">※2</span></div></li></ul><p className="font-bold text-slate-400 mb-2 text-xs">各種手当</p><div className="grid grid-cols-1 gap-1.5 text-xs font-medium text-slate-600 mb-4"><p>・資格手当: {qualAllowance}</p><p>・勤続手当: {tenureAllowance}</p><p>・役職手当: {positionAllowance}</p><p>・残業手当: {overtimeAllowance}</p><p>・夜朝手当: {nightAllowance}</p><p>・日曜手当: {sundayAllowance}</p></div><div className="space-y-1.5 border-t border-slate-100 pt-2"><p className="text-xs font-bold text-slate-500 flex gap-1"><span className="text-red-500 shrink-0">※1</span> {getValue('基本給注記', '半年の試用期間は140,000円')}</p><p className="text-xs font-bold text-slate-500 flex gap-1"><span className="text-red-500 shrink-0">※2</span> {getValue('移動手当注記') || getValue('通勤手当注記', '持ち込み（会社から借りない）バイクの場合は10,000円')}</p></div></div><div className="flex flex-col gap-8"><div><h4 className="font-bold text-slate-700 mb-3 flex items-center gap-1 text-base"><Clock size={16} className="text-green-500" /> 勤務・休日</h4><div className="space-y-4"><div className="bg-slate-50 p-3 rounded border border-slate-100"><span className="block font-bold text-slate-700 text-sm">{workingHours}</span><span className="text-xs text-slate-400 mt-1 block">月間総労働: {laborHours}</span></div><ul className="space-y-2 text-slate-600"><li className="flex items-center gap-1.5"><Calendar size={14} className="text-orange-400" /> {holidays}</li><li className="pl-5 text-xs">{paidLeave}</li></ul></div></div><div><h4 className="font-bold text-slate-700 mb-3 text-base flex items-center gap-1"><Gift size={16} className="text-orange-500" /> 福利厚生</h4><div className="flex flex-wrap gap-2 mb-4">{welfareTags.map(tag => (<span key={tag} className="text-xs font-bold bg-orange-50 text-orange-600 px-2.5 py-1 rounded border border-orange-100">{tag.trim()}</span>))}</div><div className="mt-4 bg-orange-100/50 border border-orange-200 rounded-xl p-4"><h5 className="font-bold text-orange-700 text-sm mb-2 flex items-center gap-2"><Utensils size={16} /> 軽食・飲料 無料提供</h5><p className="text-xs text-slate-700 font-medium mb-3 leading-relaxed">{foodText}</p><p className="text-orange-500 font-bold text-xs">※お弁当、パン、時にはマックやミスドも！？</p></div></div></div></div><div className="mt-8 pt-6 border-t border-slate-100 text-center"><button onClick={onClose} className="text-sm font-bold text-slate-400 hover:text-orange-500 flex items-center justify-center gap-1 mx-auto transition-colors">閉じる <ChevronRight size={14} className="rotate-90" /></button></div></div></div>
+            );
+        };
+
+        const HelperJobDetailCard = ({ onClose, data = [] }) => {
+            // スプレッドシートの値を安全に取得するヘルパー関数
+            const getValue = (key) => {
+                const item = data.find(d => d.key === key);
+                return item ? item.value : '';
+            };
+
+            // 時給データを取得
+            const hourlyWage = getValue('時給');
+            const noInsuranceWage = getValue('社保非加入時給');
+            const noInsuranceBreakdown = getValue('社保非加入_内訳');
+            const insuranceWage = getValue('社保加入時給');
+            const insuranceBreakdown = getValue('社保加入_内訳');
+            const movingSupportWage = getValue('移動支援時給');
+            const qualification = getValue('資格要件');
+            const tagsStr = getValue('タグ');
+            const tags = tagsStr ? tagsStr.split(',') : [];
+            const topImage = getValue('top_image');
+
+            // 手当・特徴データの取得
+            const workTime = getValue('勤務時間');
+            const shift = getValue('シフト');
+            const feature1 = getValue('特徴1');
+            const feature2 = getValue('特徴2');
+
+            const qualificationsAllowanceNon = getValue('資格手当_非加入');
+            const qualificationsAllowanceJoined = getValue('資格手当_加入');
+            const tenureAllowance1 = getValue('勤続手当_1-5年');
+            const tenureAllowance2 = getValue('勤続手当_5-10年');
+            const vehicleAllowance = getValue('車両手当');
+            const vehicleAllowanceNote = getValue('車両手当注記');
+
+            const nightAllowance1 = getValue('夜間手当_18-22');
+            const nightAllowance2 = getValue('夜間手当_22-6');
+            const morningAllowance = getValue('朝手当_6-8');
+            const sundayAllowance = getValue('日曜手当');
+
+            const individualTrainingAllowance = getValue('個別研修手当');
+            const legalTrainingAllowance = getValue('法定研修手当');
+            const meetingAllowance = getValue('会議手当');
+            const foodText = 'ちょっとしたコンビニぐらいの飲料やインスタント食品、冷凍、冷蔵食品も休憩中はすべて食べ飲み放題です。';
+
+            return (
+                <div id="helper-detail-card" className="scroll-mt-32 max-w-3xl mx-auto mt-8 mb-16 rounded-2xl overflow-hidden shadow-2xl border border-white/60 bg-white/95 backdrop-blur-xl animate-[popup_0.5s_cubic-bezier(0.22,1,0.36,1)_forwards]"><style>{`@keyframes popup { 0% { transform: scale(0.9); opacity: 0; } 60% { transform: scale(1.02); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }`}</style><div className="bg-orange-50/90 border-b border-orange-100 px-4 py-3 flex items-center justify-between shrink-0"><div className="flex gap-1.5 cursor-pointer" onClick={onClose}><div className="w-3 h-3 rounded-full bg-[#FF5F57] shadow-sm"></div><div className="w-3 h-3 rounded-full bg-[#FEBC2E] shadow-sm"></div><div className="w-3 h-3 rounded-full bg-[#28C840] shadow-sm"></div></div><div className="text-xl font-bold text-orange-700 flex items-center gap-1"><Briefcase size={18} /> 登録ヘルパー</div><div className="w-10 text-right"><button onClick={onClose} className="text-xs font-bold text-orange-400 hover:text-orange-600">CLOSE</button></div></div>
+                    <div className="p-5 md:p-6">
+                        {topImage && <img src={topImage} alt="詳細イメージ" className="w-full aspect-video object-cover rounded-xl shadow-sm mb-6" />}
+                        <div className="mb-6 border-b border-orange-100 pb-4"><div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4"><div className="flex items-baseline gap-2"><span className="text-4xl sm:text-5xl font-black text-slate-800 tracking-tight">{hourlyWage}</span><span className="text-lg sm:text-xl font-bold text-orange-500"> (時給)</span></div><div className="flex flex-wrap gap-2">{tags.map(tag => (<span key={tag} className="bg-orange-100 text-orange-700 text-xs font-bold px-3 py-1 rounded-full border border-orange-200">{tag.trim()}</span>))}</div></div>{qualification && <p className="text-xs font-bold text-slate-500 flex items-center gap-1"><CheckCircle size={14} className="text-green-500" /> {qualification}</p>}</div><div className="grid md:grid-cols-2 gap-6 text-sm"><div className="flex flex-col gap-8"><div><h4 className="font-bold text-slate-700 mb-3 flex items-center gap-1 text-lg"><Coins size={18} className="text-yellow-500" /> 給与詳細</h4><div className="bg-orange-50 p-5 rounded-2xl border border-orange-100 space-y-5 shadow-sm">
+                            {noInsuranceWage && <div><span className="block text-xs font-bold text-orange-600 mb-1.5">社保非加入</span><div className="flex justify-between items-baseline border-b border-orange-200 pb-2"><span className="font-black text-slate-700 text-2xl">{noInsuranceWage}</span><span className="text-xs text-slate-500 font-bold">{noInsuranceBreakdown}</span></div></div>}
+                            {insuranceWage && <div><span className="block text-xs font-bold text-orange-600 mb-1.5">社保加入 <span className="font-normal text-[10px] text-slate-500 ml-1">※実績週20h以上</span></span><div className="flex justify-between items-baseline border-b border-orange-200 pb-2"><span className="font-black text-slate-700 text-2xl">{insuranceWage}</span><span className="text-xs text-slate-500 font-bold">{insuranceBreakdown}</span></div></div>}
+                            {movingSupportWage && <div className="pt-1"><p className="text-xs text-orange-600 font-bold text-center bg-white/60 p-2 rounded-lg border border-orange-100/50">{movingSupportWage}</p></div>}
+                        </div></div><div><h4 className="font-bold text-slate-700 mb-3 flex items-center gap-1 text-lg"><Clock size={18} className="text-blue-500" /> 働き方</h4><div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm text-slate-600 space-y-2.5">
+                            {workTime && <p><span className="font-bold text-slate-800">時間：</span> {workTime}</p>}
+                            {shift && <p><span className="font-bold text-slate-800">シフト：</span> {shift}</p>}
+                            {feature1 && <p className="flex items-center gap-1"><Smartphone size={14} className="text-blue-400" /> {feature1}</p>}
+                            {feature2 && <p className="flex items-center gap-1"><Laptop size={14} className="text-purple-400" /> {feature2}</p>}
+                        </div></div><div><h4 className="font-bold text-slate-700 mb-3 flex items-center gap-1 text-lg"><Gift size={18} className="text-green-500" /> 環境・福利厚生</h4><ul className="space-y-2.5 text-sm text-slate-600 bg-white border border-slate-100 p-4 rounded-xl shadow-sm">
+                            {['1', '2', '3', '4'].map(i => {
+                                const val = getValue(`福利厚生${i}`);
+                                return val ? <li key={i} className="flex items-start gap-2"><CheckCircle size={14} className="text-orange-400 mt-0.5 shrink-0" /> {val}</li> : null;
+                            })}
+                        </ul><div className="mt-4 bg-orange-100/50 border border-orange-200 rounded-xl p-4"><h5 className="font-bold text-orange-700 text-sm mb-2 flex items-center gap-2"><Utensils size={16} /> 軽食・飲料 無料提供</h5><p className="text-xs text-slate-700 font-medium leading-relaxed mb-2">{foodText}</p><p className="text-orange-500 font-bold text-xs">※お弁当、パン、時にはマックやミスドも！？</p></div></div></div><div className="flex flex-col h-full"><h4 className="font-bold text-slate-700 mb-3 flex items-center gap-1 text-lg"><Coins size={18} className="text-orange-500" /> 各種手当・加算詳細</h4><div className="space-y-5 text-sm font-medium text-slate-600 bg-slate-50/50 p-5 rounded-2xl border border-slate-100 flex-grow shadow-sm">
+                            {(qualificationsAllowanceNon || qualificationsAllowanceJoined) && <div className="border-b border-slate-200 pb-4"><p className="font-bold mb-2.5 text-base text-slate-800 bg-slate-100 inline-block px-2 py-0.5 rounded">資格手当 <span className="font-normal text-xs text-slate-500">(実務者研修以上)</span></p><ul className="pl-1 text-sm space-y-2 text-slate-600">
+                                {qualificationsAllowanceNon && <li className="flex justify-between items-center bg-white p-2.5 rounded border border-slate-100 shadow-sm"><span>社保非加入者</span> <span className="font-bold text-slate-800">{qualificationsAllowanceNon}</span></li>}
+                                {qualificationsAllowanceJoined && <li className="flex justify-between items-center bg-white p-2.5 rounded border border-slate-100 shadow-sm"><span>社保加入者</span> <span className="font-bold text-slate-800">{qualificationsAllowanceJoined}</span></li>}
+                            </ul></div>}
+                            {(tenureAllowance1 || tenureAllowance2) && <div className="border-b border-slate-200 pb-4"><p className="font-bold mb-2.5 text-base text-slate-800 bg-slate-100 inline-block px-2 py-0.5 rounded">勤続手当 (時給)</p><ul className="pl-1 text-sm space-y-1.5 text-slate-600">
+                                {tenureAllowance1 && <li className="flex justify-between items-center"><span>1年目〜5年目</span> <span className="font-bold text-slate-800 text-orange-600">{tenureAllowance1}</span></li>}
+                                {tenureAllowance2 && <li className="flex justify-between items-center"><span>5年目〜10年目</span> <span className="font-bold text-slate-800 text-orange-600">{tenureAllowance2}</span></li>}
+                            </ul></div>}
+                            {vehicleAllowance && <div className="border-b border-slate-200 pb-4"><div className="flex justify-between items-center mb-1"><p className="font-bold text-base text-slate-800 bg-slate-100 inline-block px-2 py-0.5 rounded">車両手当 (月額)</p><span className="font-black text-slate-800 text-lg bg-white px-2 rounded border border-slate-100 shadow-sm">{vehicleAllowance}</span></div>{vehicleAllowanceNote && <p className="text-xs text-slate-500 leading-relaxed pl-1 mt-1 font-medium">{vehicleAllowanceNote}</p>}</div>}
+                            {(nightAllowance1 || nightAllowance2 || morningAllowance || sundayAllowance) && <div className="border-b border-slate-200 pb-4"><p className="font-bold mb-2.5 text-base text-slate-800 bg-slate-100 inline-block px-2 py-0.5 rounded">早朝夜間・日曜手当</p><ul className="pl-1 text-sm space-y-1.5 mb-3 text-slate-600">
+                                {nightAllowance1 && <li className="flex justify-between"><span>18:00～22:00</span> <span className="font-bold text-orange-500">{nightAllowance1}</span></li>}
+                                {nightAllowance2 && <li className="flex justify-between"><span>22:00～6:00</span> <span className="font-bold text-orange-500">{nightAllowance2}</span></li>}
+                                {morningAllowance && <li className="flex justify-between"><span>6:00～8:00</span> <span className="font-bold text-orange-500">{morningAllowance}</span></li>}
+                            </ul>{sundayAllowance && <div className="bg-orange-50 p-2.5 rounded-lg text-orange-700 font-bold text-center border border-orange-100 shadow-sm">{sundayAllowance}</div>}</div>}
+                            <div className="pt-2 space-y-3">
+                                {individualTrainingAllowance && <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm"><p className="text-sm font-bold text-slate-800 bg-slate-100 inline-block px-2 py-0.5 rounded mb-1">個別研修手当</p><p className="font-bold text-sm text-slate-800">{individualTrainingAllowance}</p><p className="text-xs text-slate-500 mt-1">※回数は各ヘルパーさんにより異なる<br />空き時間にスマホで受講可</p></div>}
+                                {legalTrainingAllowance && <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm"><p className="text-sm font-bold text-slate-800 bg-slate-100 inline-block px-2 py-0.5 rounded mb-1">法定研修手当</p><p className="font-bold text-sm text-slate-800">{legalTrainingAllowance}</p><p className="text-xs text-slate-500 mt-1">空き時間にスマホで受講可</p></div>}
+                                {meetingAllowance && <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm"><p className="text-sm font-bold text-slate-800 bg-slate-100 inline-block px-2 py-0.5 rounded mb-1">会議手当</p><p className="font-bold text-sm text-slate-800">{meetingAllowance}</p><p className="text-xs text-slate-500 mt-1">LINEミーティングで参加</p></div>}
+                            </div></div></div></div><div className="mt-8 pt-6 border-t border-orange-100 text-center"><button onClick={onClose} className="text-sm font-bold text-slate-400 hover:text-orange-500 flex items-center justify-center gap-1 mx-auto transition-colors">閉じる <ChevronRight size={14} className="rotate-90" /></button></div></div></div>
+            );
+        };
+
+        const HelperInsuredJobDetailCard = ({ onClose, data = [] }) => {
+            // スプレッドシートの値を安全に取得するヘルパー関数
+            const getValue = (key) => {
+                const item = data.find(d => d.key === key);
+                return item ? item.value : '';
+            };
+
+            // 時給データを取得
+            const hourlyWage = getValue('時給');
+            const insuranceWage = getValue('社保加入時給');
+            const insuranceBreakdown = getValue('社保加入_内訳');
+            const movingSupportWage = getValue('移動支援時給');
+            const qualification = getValue('資格要件');
+            const tagsStr = getValue('タグ');
+            const tags = tagsStr ? tagsStr.split(',') : [];
+            const topImage = getValue('top_image');
+
+            // 手当・特徴データの取得
+            const workTime = getValue('勤務時間');
+            const shift = getValue('シフト');
+            const feature1 = getValue('特徴1');
+            const feature2 = getValue('特徴2');
+
+            const qualificationsAllowance = getValue('資格手当');
+            const tenureAllowance1 = getValue('勤続手当_1-5年');
+            const tenureAllowance2 = getValue('勤続手当_5-10年');
+            const vehicleAllowance = getValue('車両手当');
+            const vehicleAllowanceNote = getValue('車両手当注記');
+
+            const nightAllowance1 = getValue('夜間手当_18-22');
+            const nightAllowance2 = getValue('夜間手当_22-6');
+            const morningAllowance = getValue('朝手当_6-8');
+            const sundayAllowance = getValue('日曜手当');
+
+            const individualTrainingAllowance = getValue('個別研修手当');
+            const legalTrainingAllowance = getValue('法定研修手当');
+            const meetingAllowance = getValue('会議手当');
+            const foodText = 'ちょっとしたコンビニぐらいの飲料やインスタント食品、冷凍、冷蔵食品も休憩中はすべて食べ飲み放題です。';
+
+            return (
+                <div id="helper-insured-detail-card" className="scroll-mt-32 max-w-3xl mx-auto mt-8 mb-16 rounded-2xl overflow-hidden shadow-2xl border border-white/60 bg-white/95 backdrop-blur-xl animate-[popup_0.5s_cubic-bezier(0.22,1,0.36,1)_forwards]"><style>{`@keyframes popup { 0% { transform: scale(0.9); opacity: 0; } 60% { transform: scale(1.02); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }`}</style><div className="bg-amber-50/90 border-b border-amber-100 px-4 py-3 flex items-center justify-between shrink-0"><div className="flex gap-1.5 cursor-pointer" onClick={onClose}><div className="w-3 h-3 rounded-full bg-[#FF5F57] shadow-sm"></div><div className="w-3 h-3 rounded-full bg-[#FEBC2E] shadow-sm"></div><div className="w-3 h-3 rounded-full bg-[#28C840] shadow-sm"></div></div><div className="text-xl font-bold text-amber-700 flex items-center gap-1"><Briefcase size={18} /> 登録ヘルパー（社保加入）</div><div className="w-10 text-right"><button onClick={onClose} className="text-xs font-bold text-amber-400 hover:text-amber-600">CLOSE</button></div></div>
+                    <div className="p-5 md:p-6">
+                        {topImage && <img src={topImage} alt="詳細イメージ" className="w-full aspect-video object-cover rounded-xl shadow-sm mb-6" />}
+                        <div className="mb-6 border-b border-amber-100 pb-4"><div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4"><div className="flex items-baseline gap-2"><span className="text-4xl sm:text-5xl font-black text-slate-800 tracking-tight">{hourlyWage}</span><span className="text-lg sm:text-xl font-bold text-amber-500"> (時給)</span></div><div className="flex flex-wrap gap-2">{tags.map(tag => (<span key={tag} className="bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1 rounded-full border border-amber-200">{tag.trim()}</span>))}</div></div><div className="flex items-center gap-2">{qualification && <p className="text-xs font-bold text-slate-500 flex items-center gap-1"><CheckCircle size={14} className="text-green-500" /> {qualification}</p>}<span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded">社保完備</span></div></div><div className="grid md:grid-cols-2 gap-6 text-sm"><div className="flex flex-col gap-8"><div><h4 className="font-bold text-slate-700 mb-3 flex items-center gap-1 text-lg"><Coins size={18} className="text-amber-500" /> 給与詳細</h4><div className="bg-amber-50 p-5 rounded-2xl border border-amber-100 space-y-5 shadow-sm">
+                            {insuranceWage && <div><span className="block text-xs font-bold text-amber-600 mb-1.5">社保加入者 <span className="font-normal text-[10px] text-slate-500 ml-1">※週20h以上</span></span><div className="flex justify-between items-baseline border-b border-amber-200 pb-2"><span className="font-black text-slate-700 text-2xl">{insuranceWage}</span><span className="text-xs text-slate-500 font-bold">{insuranceBreakdown}</span></div></div>}
+                            {movingSupportWage && <div className="pt-1"><p className="text-xs text-amber-600 font-bold text-center bg-white/60 p-2 rounded-lg border border-amber-100/50">{movingSupportWage}</p></div>}
+                        </div></div><div><h4 className="font-bold text-slate-700 mb-3 flex items-center gap-1 text-lg"><Clock size={18} className="text-blue-500" /> 働き方</h4><div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm text-slate-600 space-y-2.5">
+                            {workTime && <p><span className="font-bold text-slate-800">時間：</span> {workTime}</p>}
+                            {shift && <p><span className="font-bold text-slate-800">シフト：</span> {shift}</p>}
+                            {feature1 && <p className="flex items-center gap-1"><Smartphone size={14} className="text-blue-400" /> {feature1}</p>}
+                            {feature2 && <p className="flex items-center gap-1"><Laptop size={14} className="text-purple-400" /> {feature2}</p>}
+                        </div></div><div><h4 className="font-bold text-slate-700 mb-3 flex items-center gap-1 text-lg"><Gift size={18} className="text-green-500" /> 環境・福利厚生</h4><ul className="space-y-2.5 text-sm text-slate-600 bg-white border border-slate-100 p-4 rounded-xl shadow-sm">
+                            {['1', '2', '3', '4'].map(i => {
+                                const val = getValue(`福利厚生${i}`);
+                                return val ? <li key={i} className="flex items-start gap-2"><CheckCircle size={14} className="text-amber-400 mt-0.5 shrink-0" /> {val}</li> : null;
+                            })}
+                            <li className="flex items-start gap-2"><CheckCircle size={14} className="text-amber-400 mt-0.5 shrink-0" /> バイク・電動自転車貸出あり</li>
+                        </ul><div className="mt-4 bg-orange-100/50 border border-orange-200 rounded-xl p-4"><h5 className="font-bold text-orange-700 text-sm mb-2 flex items-center gap-2"><Utensils size={16} /> 軽食・飲料 無料提供</h5><p className="text-xs text-slate-700 font-medium leading-relaxed mb-2">{foodText}</p><p className="text-orange-500 font-bold text-xs">※お弁当、パン、時にはマックやミスドも！？</p></div></div></div><div className="flex flex-col h-full"><h4 className="font-bold text-slate-700 mb-3 flex items-center gap-1 text-lg"><Coins size={18} className="text-amber-500" /> 各種手当・加算詳細</h4><div className="space-y-5 text-sm font-medium text-slate-600 bg-slate-50/50 p-5 rounded-2xl border border-slate-100 flex-grow shadow-sm">
+                            {qualificationsAllowance && <div className="border-b border-slate-200 pb-4"><p className="font-bold mb-2.5 text-base text-slate-800 bg-slate-100 inline-block px-2 py-0.5 rounded">資格手当 <span className="font-normal text-xs text-slate-500">(実務者研修以上)</span></p><div className="bg-white p-2.5 rounded border border-slate-100 shadow-sm"><span className="font-bold text-slate-800">{qualificationsAllowance}</span></div></div>}
+                            {(tenureAllowance1 || tenureAllowance2) && <div className="border-b border-slate-200 pb-4"><p className="font-bold mb-2.5 text-base text-slate-800 bg-slate-100 inline-block px-2 py-0.5 rounded">勤続手当 (時給)</p><ul className="pl-1 text-sm space-y-1.5 text-slate-600">
+                                {tenureAllowance1 && <li className="flex justify-between items-center"><span>1年目〜5年目</span> <span className="font-bold text-slate-800 text-amber-600">{tenureAllowance1}</span></li>}
+                                {tenureAllowance2 && <li className="flex justify-between items-center"><span>5年目〜10年目</span> <span className="font-bold text-slate-800 text-amber-600">{tenureAllowance2}</span></li>}
+                            </ul></div>}
+                            {vehicleAllowance && <div className="border-b border-slate-200 pb-4"><div className="flex justify-between items-center mb-1"><p className="font-bold text-base text-slate-800 bg-slate-100 inline-block px-2 py-0.5 rounded">車両手当 (月額)</p><span className="font-black text-slate-800 text-lg bg-white px-2 rounded border border-slate-100 shadow-sm">{vehicleAllowance}</span></div>{vehicleAllowanceNote && <p className="text-xs text-slate-500 leading-relaxed pl-1 mt-1 font-medium">{vehicleAllowanceNote}</p>}</div>}
+                            {(nightAllowance1 || nightAllowance2 || morningAllowance || sundayAllowance) && <div className="border-b border-slate-200 pb-4"><p className="font-bold mb-2.5 text-base text-slate-800 bg-slate-100 inline-block px-2 py-0.5 rounded">早朝夜間・日曜手当</p><ul className="pl-1 text-sm space-y-1.5 mb-3 text-slate-600">
+                                {nightAllowance1 && <li className="flex justify-between"><span>18:00～22:00</span> <span className="font-bold text-amber-500">{nightAllowance1}</span></li>}
+                                {nightAllowance2 && <li className="flex justify-between"><span>22:00～6:00</span> <span className="font-bold text-amber-500">{nightAllowance2}</span></li>}
+                                {morningAllowance && <li className="flex justify-between"><span>6:00～8:00</span> <span className="font-bold text-amber-500">{morningAllowance}</span></li>}
+                            </ul>{sundayAllowance && <div className="bg-amber-50 p-2.5 rounded-lg text-amber-700 font-bold text-center border border-amber-100 shadow-sm">{sundayAllowance}</div>}</div>}
+                            <div className="pt-2 space-y-3">
+                                {individualTrainingAllowance && <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm"><p className="text-sm font-bold text-slate-800 bg-slate-100 inline-block px-2 py-0.5 rounded mb-1">個別研修手当</p><p className="font-bold text-sm text-slate-800">{individualTrainingAllowance}</p><p className="text-xs text-slate-500 mt-1">※回数は各ヘルパーさんにより異なる<br />空き時間にスマホで受講可</p></div>}
+                                {legalTrainingAllowance && <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm"><p className="text-sm font-bold text-slate-800 bg-slate-100 inline-block px-2 py-0.5 rounded mb-1">法定研修手当</p><p className="font-bold text-sm text-slate-800">{legalTrainingAllowance}</p><p className="text-xs text-slate-500 mt-1">空き時間にスマホで受講可</p></div>}
+                                {meetingAllowance && <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm"><p className="text-sm font-bold text-slate-800 bg-slate-100 inline-block px-2 py-0.5 rounded mb-1">会議手当</p><p className="font-bold text-sm text-slate-800">{meetingAllowance}</p><p className="text-xs text-slate-500 mt-1">LINEミーティングで参加</p></div>}
+                            </div></div></div></div><div className="mt-8 pt-6 border-t border-amber-100 text-center"><button onClick={onClose} className="text-sm font-bold text-slate-400 hover:text-amber-500 flex items-center justify-center gap-1 mx-auto transition-colors">閉じる <ChevronRight size={14} className="rotate-90" /></button></div></div></div>
+            );
+        };
+
+        const InternJobDetailCard = ({ onClose }) => {
+
+            return (
+                <div id="intern-detail-card" className="scroll-mt-32 max-w-3xl mx-auto mt-8 mb-16 rounded-2xl overflow-hidden shadow-2xl border border-white/60 bg-white/95 backdrop-blur-xl animate-[popup_0.5s_cubic-bezier(0.22,1,0.36,1)_forwards]">
+                    <style>{`@keyframes popup { 0% { transform: scale(0.9); opacity: 0; } 60% { transform: scale(1.02); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }`}</style>
+                    <div className="bg-green-50/90 border-b border-green-100 px-4 py-3 flex items-center justify-between shrink-0">
+                        <div className="flex gap-1.5 cursor-pointer" onClick={onClose}>
+                            <div className="w-3 h-3 rounded-full bg-[#FF5F57] shadow-sm"></div><div className="w-3 h-3 rounded-full bg-[#FEBC2E] shadow-sm"></div><div className="w-3 h-3 rounded-full bg-[#28C840] shadow-sm"></div>
+                        </div>
+                        <div className="text-xl font-bold text-green-700 flex items-center gap-1"><Briefcase size={18} /> 職場体験・見学会</div>
+                        <div className="w-10 text-right"><button onClick={onClose} className="text-xs font-bold text-green-600 hover:text-green-800">CLOSE</button></div>
+                    </div>
+                    <div className="p-5 md:p-8">
+                        <div className="bg-green-50 rounded-2xl p-6 border border-green-100 mb-8 flex flex-col md:flex-row items-center gap-6">
+                            <div className="flex-1">
+                                <span className="inline-block bg-white text-green-600 text-xs font-bold px-3 py-1 rounded-full border border-green-200 mb-3 shadow-sm">履歴書不要・手ぶらでOK</span>
+                                <h3 className="mb-3 leading-tight">
+                                    <span className="block text-2xl md:text-3xl font-black text-green-600 mb-1">気軽に面談からでもOK。</span>
+                                    <span className="block text-lg md:text-xl font-bold text-slate-700">あさひの雰囲気を体験しませんか？</span>
+                                </h3>
+                                <p className="text-sm text-slate-600 font-medium leading-relaxed">「介護の仕事って実際どうなの？」「未経験だけど大丈夫？」<br />そんな不安を解消するための体験会です。資格がない方も大歓迎！</p>
+                            </div>
+                            <div className="shrink-0 bg-white p-4 rounded-xl shadow-sm border border-slate-100 text-center w-full md:w-auto">
+                                <p className="text-xs font-bold text-slate-400 mb-1">参加特典</p>
+                                <div className="text-green-600 font-black text-xl mb-1 flex items-center justify-center gap-1"><Gift size={20} /> JCBギフト</div>
+                                <div className="text-3xl font-black text-slate-800 tracking-tighter mb-2">3,000円分</div>
+                                <span className="text-[10px] font-bold bg-orange-100 text-orange-700 px-2 py-1 rounded block">さらに美味しいランチ付き！</span>
+                            </div>
+                        </div>
+                        <div className="mb-8">
+                            <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2 text-lg"><Users size={20} className="text-blue-500" /> こんな方におすすめ</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{['正社員として働きたいけど、職場の雰囲気が気になる', '登録ヘルパーとして空いた時間に働きたい', '資格は持っていないけど介護の仕事に興味がある', '未経験なので、実際の現場を見てみたい'].map((text, i) => (<div key={i} className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100"><CheckCircle size={16} className="text-green-500 shrink-0" /><span className="text-xs font-bold text-slate-700">{text}</span></div>))}</div>
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-slate-700 mb-6 flex items-center gap-2 text-lg"><Clock size={20} className="text-orange-500" /> 当日の流れ<span className="text-sm font-bold text-slate-500 ml-2">(所要時間：3時間～6時間 <span className="text-xs font-normal">※希望によって調整します</span>)</span></h4>
+                            <div className="relative pl-4 md:pl-8 space-y-8 before:content-[''] before:absolute before:left-[23px] before:md:left-[39px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+                                <div className="relative flex items-start gap-4 md:gap-6"><div className="z-10 w-10 h-10 md:w-12 md:h-12 bg-white border-4 border-green-100 rounded-full flex items-center justify-center shrink-0 shadow-sm text-green-600 font-black text-lg">1</div><div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex-1"><h5 className="font-bold text-slate-800 mb-1 flex items-center gap-2"><Building2 size={16} className="text-slate-400" /> 事務所で顔合わせ</h5><p className="text-sm text-slate-600">まずは事務所にお越しいただき、簡単な自己紹介と事業所の説明を行います。リラックスしてお話しましょう。</p></div></div>
+                                <div className="relative flex items-start gap-4 md:gap-6"><div className="z-10 w-10 h-10 md:w-12 md:h-12 bg-white border-4 border-green-100 rounded-full flex items-center justify-center shrink-0 shadow-sm text-green-600 font-black text-lg">2</div><div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex-1"><h5 className="font-bold text-slate-800 mb-1 flex items-center gap-2"><Bike size={16} className="text-slate-400" /> 現場へ移動</h5><p className="text-sm text-slate-600">先輩スタッフと一緒に利用者様のお宅へ移動します。バイク、電動自転車、または車で移動します。</p></div></div>
+                                <div className="relative flex items-start gap-4 md:gap-6"><div className="z-10 w-10 h-10 md:w-12 md:h-12 bg-white border-4 border-green-100 rounded-full flex items-center justify-center shrink-0 shadow-sm text-green-600 font-black text-lg">3</div><div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex-1"><h5 className="font-bold text-slate-800 mb-1 flex items-center gap-2"><Heart size={16} className="text-slate-400" /> 訪問介護の見学</h5><p className="text-sm text-slate-600">実際のサービス現場に<span className="font-bold text-orange-500">2〜3件同行</span>していただきます。スタッフがどのように利用者様と接しているか、間近でご覧ください。</p></div></div>
+                                <div className="relative flex items-start gap-4 md:gap-6"><div className="z-10 w-10 h-10 md:w-12 md:h-12 bg-white border-4 border-green-100 rounded-full flex items-center justify-center shrink-0 shadow-sm text-green-600 font-black text-lg">4</div><div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex-1"><h5 className="font-bold text-slate-800 mb-1 flex items-center gap-2"><Utensils size={16} className="text-slate-400" /> ランチ & 質疑応答</h5><p className="text-sm text-slate-600">事務所に戻って、ご飯を食べながら座談会。疑問に思ったことや、働き方の相談など、なんでも聞いてください！</p></div></div>
+                            </div>
+                        </div>
+                        <div className="mt-8 pt-6 border-t border-green-100 text-center">
+                            <p className="text-xs font-bold text-slate-400 mb-4">ご希望の方は、下のフォームの「インターン希望」にチェックを入れて送信してください。</p>
+                            <button onClick={onClose} className="text-sm font-bold text-slate-400 hover:text-green-600 flex items-center justify-center gap-1 mx-auto transition-colors">閉じる <ChevronRight size={14} className="rotate-90" /></button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Page Components ---
+
+        // --- News Page ---
+        const NewsPage = ({ newsData = [] }) => {
+            const allNewsItems = newsData.length > 0 ? newsData : DEFAULT_DATA.news;
+
+            return (
+                <div className="min-h-screen pt-24 pb-20">
+                    <div className="container mx-auto px-6 mb-12">
+                        <div className="max-w-4xl mx-auto text-center py-12">
+                            <h1 className="text-3xl font-black tracking-tight mb-3"><GradientText>お知らせ一覧</GradientText></h1>
+                            <p className="text-sm text-slate-500 font-medium">ライフサポートあさひからの最新情報や重要なお知らせを掲載しています。</p>
+                        </div>
+                    </div>
+
+                    <div className="container mx-auto px-6 mb-12">
+                        <div className="max-w-4xl mx-auto bg-white/90 backdrop-blur-md rounded-3xl shadow-xl border border-white/60 overflow-hidden">
+                            <div className="bg-slate-50/80 border-b border-slate-200 px-6 py-4 flex items-center gap-3">
+                                <Newspaper size={20} className="text-slate-400" />
+                                <h2 className="text-lg font-bold text-slate-700">NEWS ARCHIVES</h2>
+                            </div>
+                            <div className="divide-y divide-slate-100">
+                                {allNewsItems.map((item, index) => (
+                                    <div key={index} className="p-6 md:p-8 hover:bg-slate-50 transition-colors group">
+                                        <div className="flex flex-col md:flex-row md:items-center gap-4 mb-3">
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-sm font-mono font-bold text-slate-400">{item.date}</span>
+                                                <span className={`text-[10px] px-2.5 py-1 rounded-md font-bold border ${item.tag === '重要' ? 'bg-red-50 text-red-500 border-red-100' : item.tag === '求人' ? 'bg-blue-50 text-blue-500 border-blue-100' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>{item.tag}</span>
+                                            </div>
+                                            <h3 className="text-lg font-bold text-slate-800 group-hover:text-orange-600 transition-colors">{item.text}</h3>
+                                        </div>
+                                        <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-line pl-0 md:pl-28">{item.content}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Staff Page ---
+        const StaffPage = ({ staffData = [] }) => {
+            const staffMembers = staffData.length > 0 ? staffData : DEFAULT_DATA.staff;
+
+            return (
+                <div className="min-h-screen pt-24 pb-20">
+                    <div className="container mx-auto px-6 mb-6">
+                        <div className="max-w-4xl mx-auto text-center py-6">
+                            <h1 className="text-3xl font-black tracking-tight mb-3"><GradientText>社員紹介</GradientText></h1>
+                            <p className="text-sm text-slate-500 font-medium">ライフサポートあさひで働くスタッフを紹介します。<br className="hidden md:block" />一人ひとりのプロフェッショナルとしての誇りを持ち、利用者様と向き合っています。</p>
+                        </div>
+                    </div>
+                    <div className="container mx-auto px-6">
+                        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                            {staffMembers.map((staff, index) => (<StaffCard key={index} name={staff.name} role={staff.role} photo={staff.photo} photo_pc={staff.photo_pc} photo_mobile={staff.photo_mobile} catchphrase={staff.catchphrase} description={staff.description} prevJob={staff.prevJob} holiday={staff.holiday} favorite={staff.favorite} isDetailed={true} />))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Company Page ---
+        const CompanyPage = ({ historyData: historyDataProp = [], companyInfo: companyInfoProp = [] }) => {
+            const historyData = historyDataProp.length > 0 ? historyDataProp : DEFAULT_DATA.history;
+            const rawCompanyInfo = companyInfoProp.length > 0 ? companyInfoProp : DEFAULT_DATA.companyInfo;
+
+            // 会社情報を取得するヘルパー関数
+            const getInfo = (key) => {
+                const item = rawCompanyInfo.find(i => i.key === key);
+                return item ? item.value : '';
+            };
+
+            // テキスト内の "強調したい言葉" をオレンジ色にする安全なレンダリング関数
+            const renderStyledText = (text) => {
+                if (!text) return null;
+                // ダブルクォーテーションで分割
+                return text.split(/\"([^\"]+)\"/g).map((part, index) => {
+                    // 奇数番目がダブルクォーテーションで囲まれていた部分
+                    if (index % 2 === 1) {
+                        return (
+                            <span key={index} className="text-base font-bold mx-1">
+                                <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-orange-600">
+                                    {part}
+                                </span>
+                            </span>
+                        );
+                    }
+                    // 偶数番目は通常のテキスト
+                    return part;
+                });
+            };
+
+            return (
+                <div className="min-h-screen pt-24 pb-20">
+                    <div className="container mx-auto px-6 mb-6">
+                        <div className="max-w-4xl mx-auto text-center py-6">
+                            <h1 className="text-3xl font-black tracking-tight mb-3"><GradientText>ご挨拶</GradientText></h1>
+                            <div className="space-y-4 text-slate-500 text-sm font-medium leading-relaxed text-left max-w-4xl mx-auto px-6">
+                                {getInfo('挨拶文1') && <p>{getInfo('挨拶文1')}</p>}
+                                {getInfo('挨拶文2') && <p>{renderStyledText(getInfo('挨拶文2'))}</p>}
+                                {getInfo('挨拶文3') && <p>{renderStyledText(getInfo('挨拶文3'))}</p>}
+                                {getInfo('挨拶文4') && <p>{getInfo('挨拶文4')}</p>}
+                            </div>
+                        </div>
+                    </div>
+                    <div className="container mx-auto px-6 mb-12">
+                        <div className="max-w-3xl mx-auto bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl overflow-hidden border border-white/60">
+                            <div className="bg-white/50 border-b border-slate-100 px-6 py-3 flex items-center gap-2"><div className="flex gap-2"><div className="w-3 h-3 rounded-full bg-[#FF5F57] shadow-sm"></div><div className="w-3 h-3 rounded-full bg-[#FEBC2E] shadow-sm"></div><div className="w-3 h-3 rounded-full bg-[#28C840] shadow-sm"></div></div><div className="ml-auto text-[10px] font-bold text-slate-300 tracking-widest uppercase">PROFILE</div></div>
+                            <div className="p-6 md:p-8">
+                                <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-3"><div className="p-1.5 bg-orange-50 rounded-lg text-orange-500"><Building2 size={20} /></div><h2 className="text-xl font-black"><GradientText>会社概要</GradientText></h2></div>
+                                <div className="space-y-3 text-sm">
+                                    <div className="grid md:grid-cols-3 gap-2 border-b border-slate-50 pb-3"><dt className="font-bold text-slate-400 text-xs">法人名</dt><dd className="md:col-span-2 font-bold text-slate-800">{getInfo('法人名')}</dd></div>
+                                    <div className="grid md:grid-cols-3 gap-2 border-b border-slate-50 pb-3"><dt className="font-bold text-slate-400 text-xs">事業所名</dt><dd className="md:col-span-2 font-bold text-slate-800">{getInfo('事業所名')}</dd></div>
+                                    <div className="grid md:grid-cols-3 gap-2 border-b border-slate-50 pb-3"><dt className="font-bold text-slate-400 text-xs">所在地</dt><dd className="md:col-span-2 font-bold text-slate-800">{getInfo('郵便番号')}<br />{getInfo('住所')}</dd></div>
+                                    <div className="grid md:grid-cols-3 gap-2 border-b border-slate-50 pb-3"><dt className="font-bold text-slate-400 text-xs">連絡先</dt><dd className="md:col-span-2 font-bold text-slate-800">TEL: {getInfo('電話番号')}<br />FAX: {getInfo('FAX番号')}</dd></div>
+                                    <div className="grid md:grid-cols-3 gap-2"><dt className="font-bold text-slate-400 text-xs">事業内容</dt><dd className="md:col-span-2 font-bold text-slate-800"><ul className="list-none space-y-0.5 text-xs">{getInfo('事業内容1') && <li>{getInfo('事業内容1')}</li>}{getInfo('事業内容2') && <li>{getInfo('事業内容2')}</li>}</ul></dd></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="container mx-auto px-6">
+                        <div className="max-w-3xl mx-auto bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl overflow-hidden border border-white/60">
+                            <div className="bg-white/50 border-b border-slate-100 px-6 py-3 flex items-center gap-2"><div className="flex gap-2"><div className="w-3 h-3 rounded-full bg-[#FF5F57] shadow-sm"></div><div className="w-3 h-3 rounded-full bg-[#FEBC2E] shadow-sm"></div><div className="w-3 h-3 rounded-full bg-[#28C840] shadow-sm"></div></div><div className="ml-auto text-[10px] font-bold text-slate-300 tracking-widest uppercase">HISTORY</div></div>
+                            <div className="p-6 md:p-8">
+                                <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-3"><div className="p-1.5 bg-orange-50 rounded-lg text-orange-500"><History size={20} /></div><h2 className="text-xl font-black"><GradientText>沿革</GradientText></h2></div>
+                                <div className="space-y-4">{historyData.map((item, index) => (<div key={index} className="grid md:grid-cols-4 gap-2 border-b border-slate-50 pb-3 last:border-0 last:pb-0 text-sm"><dt className="font-bold text-orange-500 md:col-span-1 text-xs whitespace-nowrap">{item.date}</dt><dd className="md:col-span-3 font-medium text-slate-700 whitespace-pre-line leading-relaxed">{item.content}</dd></div>))}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Facilities Page ---
+        const FacilitiesPage = ({ facilitiesData = [] }) => {
+            const [selectedImage, setSelectedImage] = useState(null);
+            const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+
+            // スプレッドシートデータから画像を整形（url_pc/url_mobile対応）
+            const rawData = facilitiesData.length > 0 ? facilitiesData : DEFAULT_DATA.facilities;
+            const images = {
+                exterior: (() => {
+                    const item = rawData.find(item => item.category === 'exterior');
+                    return item ? getImageUrl(item, 'url_pc', 'url_mobile', 'url') : "";
+                })(),
+                headoffice_card: (() => {
+                    const item = rawData.find(item => item.category === 'headoffice_card');
+                    return item ? (item.url_pc || item.url_mobile || item.url || '') : "";
+                })(),
+                office: rawData.filter(item => item.category === 'office').sort((a, b) => a.order - b.order).map(item => getImageUrl(item, 'url_pc', 'url_mobile', 'url')),
+                breakroom: rawData.filter(item => item.category === 'breakroom').sort((a, b) => a.order - b.order).map(item => getImageUrl(item, 'url_pc', 'url_mobile', 'url')),
+                satellite_wakae: (() => {
+                    const item = rawData.find(item => item.category === 'satellite_wakae');
+                    return item ? getImageUrl(item, 'url_pc', 'url_mobile', 'url') : "";
+                })(),
+                satellite_fuse: (() => {
+                    const item = rawData.find(item => item.category === 'satellite_fuse');
+                    return item ? getImageUrl(item, 'url_pc', 'url_mobile', 'url') : "";
+                })(),
+                satellite_kano: (() => {
+                    const item = rawData.find(item => item.category === 'satellite_kano');
+                    return item ? getImageUrl(item, 'url_pc', 'url_mobile', 'url') : "";
+                })(),
+                satellite: (() => {
+                    const item = rawData.find(item => item.category === 'satellite');
+                    return item ? getImageUrl(item, 'url_pc', 'url_mobile', 'url') : "";
+                })()
+            };
+
+            return (
+                <div className="min-h-screen pt-24 pb-20">
+                    {selectedImage && (<ImageModal src={selectedImage} onClose={() => setSelectedImage(null)} />)}
+                    <div className="container mx-auto px-6 mb-6">
+                        <div className="max-w-4xl mx-auto text-center py-6">
+                            <h1 className="text-3xl font-black tracking-tight mb-3"><GradientText>事業所一覧</GradientText></h1>
+                            <p className="text-sm text-slate-500 font-medium">大阪府東大阪市を中心に、地域に密着したサービスを展開しています。<br className="hidden md:block" />スタッフが働きやすく、利用者が安心して過ごせる環境づくりにこだわっています。</p>
+                        </div>
+                    </div>
+                    <div className="container mx-auto px-6 space-y-16">
+                        <div className="max-w-5xl mx-auto">
+                            <div className="flex items-center gap-3 mb-6"><div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600"><Building2 size={20} /></div><h2 className="text-2xl font-black text-slate-800">本社オフィス <span className="text-sm font-medium text-slate-400 ml-2">Head Office</span></h2></div>
+                            <div className="flex flex-col md:flex-row gap-6 mb-8 items-stretch">
+                                <div className="w-full md:w-2/3 rounded-3xl overflow-hidden shadow-xl relative group border border-slate-100 cursor-pointer bg-slate-50 exterior-container" onClick={() => setSelectedImage(images.exterior)}>
+                                    <img src={images.exterior} alt="本社外観" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent"></div>
+                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center pointer-events-none"><div className="bg-white/20 backdrop-blur-md p-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity transform scale-90 group-hover:scale-100"><ImageIcon size={32} className="text-white" /></div></div>
+                                    <div className="absolute bottom-0 left-0 p-6 md:p-8 w-full"><span className="text-orange-300 text-xs font-bold tracking-widest uppercase mb-2 block">Head Office</span><h3 className="text-white text-3xl md:text-4xl font-black mb-1">ライフサポートあさひ</h3><p className="text-slate-200 text-sm font-medium flex items-center gap-2"><MapPin size={16} /> 大阪府東大阪市荒本北2丁目5-5</p></div>
+                                </div>
+                                <div className="w-full md:w-1/3 bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden flex flex-col">
+                                    {/* 情報エリア（上部） */}
+                                    <div className="p-4 md:p-5 flex flex-col justify-center gap-3">
+                                        <div className="space-y-3">
+                                            <div><div className="flex items-center gap-2 mb-1"><div className="w-6 h-6 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-orange-500 shadow-sm shrink-0"><Phone size={12} /></div><span className="text-[10px] text-slate-400 font-bold">電話番号</span></div><p className="text-base font-black text-slate-800 pl-8">06-6746-7800</p></div>
+                                            <div><div className="flex items-center gap-2 mb-1"><div className="w-6 h-6 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-orange-500 shadow-sm shrink-0"><Landmark size={12} /></div><span className="text-[10px] text-slate-400 font-bold">アクセス</span></div><p className="text-xs font-bold text-slate-700 pl-8 mb-1">荒本駅から徒歩5分</p><div className="pl-8"><p className="text-[10px] text-slate-600 font-medium leading-relaxed">東大阪市役所の目の前に位置し、オレンジの看板が目印の分かりやすい場所です。周辺は利便性が高く、2029年にはモノレール駅が開業予定のため今後ますますアクセスが向上するエリアです。</p></div></div>
+                                        </div>
+                                        <div className="space-y-2 pt-1"><a href="https://maps.google.com/?q=大阪府東大阪市荒本北2丁目5-5" target="_blank" rel="noopener noreferrer" className="w-full py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 font-bold text-[10px] flex items-center justify-center gap-1 hover:bg-slate-100 transition-colors"><MapIcon size={12} /> Google Maps</a><a href="tel:06-6746-7800" className="w-full py-2 rounded-xl bg-slate-900 text-white font-bold text-[10px] flex items-center justify-center gap-1 hover:bg-slate-800 transition-colors shadow-lg"><Phone size={12} /> 電話をかける</a></div>
+                                    </div>
+                                    {/* 動画/写真エリア（下部 - スプシから取得可能 - category: headoffice_card） */}
+                                    <div className={`w-full md:flex-1 flex items-center justify-center mt-auto headoffice-card-container relative ${isVideoUrl(images.headoffice_card) ? 'bg-black' : 'overflow-hidden bg-slate-100'}`}>
+                                        {images.headoffice_card ? (
+                                            isVideoUrl(images.headoffice_card) ? (
+                                                // 動画URLの場合: 常にvideoタグで表示（モバイル対応）
+                                                <video
+                                                    src={images.headoffice_card}
+                                                    controls
+                                                    playsInline
+                                                    webkit-playsinline=""
+                                                    preload="auto"
+                                                    style={{ width: '100%', display: 'block', backgroundColor: '#000' }}
+                                                />
+                                            ) : (
+                                                // 通常の画像URLの場合（従来通り）
+                                                <div className="w-full h-full cursor-pointer group" onClick={() => setSelectedImage(images.headoffice_card)}>
+                                                    <img src={images.headoffice_card} alt="本社" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                                                </div>
+                                            )
+                                        ) : (
+                                            <div className="text-center text-slate-400 p-4">
+                                                <ImageIcon size={32} className="mx-auto mb-2 opacity-50" />
+                                                <p className="text-xs font-medium">スプシから画像/動画URLを追加<br />category: headoffice_card</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="bg-white rounded-3xl overflow-hidden shadow-2xl border border-slate-100 mb-8">
+                                <div className="p-6 md:p-10">
+                                    <div className="flex flex-col md:flex-row gap-8 items-start">
+                                        <div className="md:w-1/3"><span className="text-xs font-bold text-blue-500 bg-blue-50 px-2 py-1 rounded mb-2 inline-block">1F OFFICE</span><h4 className="text-lg font-black text-slate-800 mb-3">効率と快適性を追求した<br />執務スペース</h4><p className="text-sm text-slate-600 leading-relaxed font-medium mb-4">スタッフの生産性向上を第一に考え、全席にデュアルモニターを採用しています。広い画面で作業効率を高め、ストレスなく業務に集中できる環境を整えています。</p><div className="flex gap-2"><div className="px-3 py-1 bg-slate-100 rounded-full text-[10px] font-bold text-slate-500">Dual Monitor</div><div className="px-3 py-1 bg-slate-100 rounded-full text-[10px] font-bold text-slate-500">Ergonomic</div></div></div>
+                                        <div className="md:w-2/3 grid grid-cols-2 gap-3 w-full">{images.office.map((src, i) => (<div key={i} className="rounded-2xl overflow-hidden shadow-md h-48 group cursor-pointer relative" onClick={() => setSelectedImage(src)}><img src={src} alt="Office" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" /><div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center"><div className="bg-white/20 backdrop-blur-md p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity transform scale-90 group-hover:scale-100"><ImageIcon size={20} className="text-white" /></div></div></div>))}</div>
+                                    </div>
+                                </div>
+                                <div className="w-full h-px bg-slate-100"></div>
+                                <div className="p-6 md:p-10 bg-orange-50/30">
+                                    <div className="flex flex-col md:flex-row-reverse gap-8 items-start">
+                                        <div className="md:w-1/3"><span className="text-xs font-bold text-orange-500 bg-orange-100 px-2 py-1 rounded mb-2 inline-block">2F RELAXATION</span><h4 className="text-lg font-black text-slate-800 mb-3">心もお腹も満たされる<br />充実の休憩スペース</h4><p className="text-sm text-slate-600 leading-relaxed font-medium mb-4">広々としたランチスペースに加え、足を伸ばしてくつろげる「畳の小上がり」も完備。仮眠を取ってリフレッシュすることも可能です。</p><p className="text-sm text-slate-600 leading-relaxed font-medium mb-4"><span className="font-bold text-orange-600">大型テレビも設置</span>しており、ニュースやYouTubeを見ながらリラックスしたランチタイムを過ごせます。</p><div className="bg-white p-4 rounded-xl border border-orange-100 shadow-sm mb-4"><h5 className="font-bold text-orange-600 text-xs mb-2 flex items-center gap-1"><Utensils size={12} /> FOOD & DRINK</h5><ul className="space-y-1.5 text-xs text-slate-600 font-medium"><li className="flex items-start gap-2"><CheckCircle size={12} className="text-green-500 mt-0.5" /> 冷凍・レトルト食品、飲料など常備</li><li className="flex items-start gap-2"><CheckCircle size={12} className="text-green-500 mt-0.5" /> 週2〜3回の「買い出しデー」あり</li><li className="text-orange-500 font-bold pl-5">※お弁当、パン、時にはマックやミスドも！？</li></ul></div></div>
+                                        <div className="md:w-2/3 w-full"><div className="flex md:grid md:grid-cols-3 gap-3 overflow-x-auto md:overflow-visible pb-4 md:pb-0 snap-x">{images.breakroom.map((src, i) => (<div key={i} onClick={() => setSelectedImage(src)} className={`rounded-2xl overflow-hidden shadow-md flex-shrink-0 w-4/5 md:w-auto h-40 snap-center group relative cursor-pointer ${i === 0 ? 'md:col-span-2 md:h-auto md:aspect-video' : i === 1 ? 'md:h-auto' : 'md:h-32'}`}><img src={src} alt="Break room" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" /><div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center"><div className="bg-white/20 backdrop-blur-md p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity transform scale-90 group-hover:scale-100"><ImageIcon size={20} className="text-white" /></div></div>{i === 0 && <div className="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded backdrop-blur-sm font-bold flex items-center gap-1"><Sun size={10} /> 畳の小上がり</div>}{i === 1 && <div className="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded backdrop-blur-sm font-bold">ランチテーブル</div>}</div>))}</div></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="max-w-5xl mx-auto">
+                            <div className="flex items-center gap-3 mb-6"><div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600"><MapIcon size={20} /></div><h2 className="text-2xl font-black text-slate-800">面接・研修施設 <span className="text-sm font-medium text-slate-400 ml-2">Satellite Offices</span></h2></div>
+                            <div className="grid md:grid-cols-3 gap-6">
+                                <SatelliteCard title="若江 施設" address="東大阪市若江本町4丁目2-4" access="近鉄「若江岩田駅」より徒歩10分" link="https://maps.google.com/?q=東大阪市若江本町4丁目2-4" images={images} imageSrc={images.satellite_wakae || images.satellite} setSelectedImage={setSelectedImage} />
+                                <SatelliteCard title="布施 施設" address="東大阪市長堂2丁目10-24" access="近鉄「布施駅」より徒歩5分" link="https://maps.google.com/?q=東大阪市長堂2丁目10-24" images={images} imageSrc={images.satellite_fuse || images.satellite} setSelectedImage={setSelectedImage} />
+                                <SatelliteCard title="加納 施設" address="東大阪市加納1丁目10-8" access="JR学研都市線「住道駅」徒歩15分" link="https://maps.google.com/?q=東大阪市加納1丁目10-8" images={images} imageSrc={images.satellite_kano || images.satellite} setSelectedImage={setSelectedImage} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Recruit Page ---
+        const RecruitPage = ({ onBack, scrollTarget, recruitCards = [], recruitFulltime = [], recruitHelper = [], recruitHelperInsured = [], recruitIntern = [] }) => {
+            const [isSubmitting, setIsSubmitting] = useState(false);
+            const [showModal, setShowModal] = useState(false);
+            const [selectedJob, setSelectedJob] = useState(null);
+            const [recruitPhoneError, setRecruitPhoneError] = useState('');
+            const [recruitContactMethod, setRecruitContactMethod] = useState('');
+
+            // 電話番号形式バリデーション (000-0000-0000)
+            const validatePhone = (value) => {
+                const phonePattern = /^\d{2,4}-\d{2,4}-\d{4}$/;
+                return phonePattern.test(value);
+            };
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setIsSubmitting(true);
+                setRecruitPhoneError('');
+
+                try {
+                    const form = e.target;
+                    const phoneValue = form.querySelector('#recruit-phone')?.value || '';
+
+                    // 電話番号形式チェック
+                    if (!validatePhone(phoneValue)) {
+                        setRecruitPhoneError('電話番号は000-0000-0000の形式で入力してください');
+                        setIsSubmitting(false);
+                        return;
+                    }
+
+                    const interviewChoiceEl = form.querySelector('input[name="interview-choice"]:checked');
+                    const interviewType = interviewChoiceEl?.value || '';
+
+                    const formData = {
+                        formType: 'recruit',
+                        name: form.querySelector('#recruit-name')?.value || '',
+                        email: form.querySelector('#recruit-email')?.value || '',
+                        phone: phoneValue,
+                        contactMethod: form.querySelector('input[name="recruit-contact-method"]:checked')?.parentElement?.querySelector('span')?.textContent || '',
+                        preferredTime: form.querySelector('#recruit-preferred-time')?.value || '',
+                        jobType: form.querySelector('input[name="job-type"]:checked')?.parentElement?.querySelector('span')?.textContent || '',
+                        interviewType: interviewType
+                    };
+
+                    const response = await fetch(SPREADSHEET_CONFIG.formApiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: JSON.stringify(formData),
+                        mode: 'no-cors'
+                    });
+
+                    // no-corsモードではopaque responseが返る（status=0）が、リクエスト自体は送信済み
+                    console.log('Form submitted (no-cors mode)');
+                    setShowModal(true);
+                    form.reset();
+                } catch (error) {
+                    console.error('Submit error:', error);
+                    alert('送信に失敗しました。お電話でのお問い合わせをお願いします。\n\nTEL: 06-6746-7800');
+                } finally {
+                    setIsSubmitting(false);
+                }
+            };
+
+            const handleScrollToForm = () => {
+                const element = document.getElementById('application-form');
+                if (element) {
+                    const headerOffset = 100;
+                    const elementPosition = element.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.scrollY - headerOffset;
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+            };
+
+            const handleFulltimeClick = () => {
+                if (selectedJob === 'fulltime') {
+                    const element = document.getElementById('job-detail-card');
+                    if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                    setSelectedJob('fulltime');
+                    setTimeout(() => {
+                        const element = document.getElementById('job-detail-card');
+                        if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 100);
+                }
+            };
+
+            const handleHelperClick = () => {
+                if (selectedJob === 'helper') {
+                    const element = document.getElementById('helper-detail-card');
+                    if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                    setSelectedJob('helper');
+                    setTimeout(() => {
+                        const element = document.getElementById('helper-detail-card');
+                        if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 100);
+                }
+            };
+
+            const handleHelperInsuredClick = () => {
+                if (selectedJob === 'helper_insured') {
+                    const element = document.getElementById('helper-insured-detail-card');
+                    if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                    setSelectedJob('helper_insured');
+                    setTimeout(() => {
+                        const element = document.getElementById('helper-insured-detail-card');
+                        if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 100);
+                }
+            };
+
+            const handleInternClick = () => {
+                if (selectedJob === 'intern') {
+                    const element = document.getElementById('intern-detail-card');
+                    if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                    setSelectedJob('intern');
+                    setTimeout(() => {
+                        const element = document.getElementById('intern-detail-card');
+                        if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 100);
+                }
+            };
+
+            const closeJobDetail = () => {
+                setSelectedJob(null);
+            };
+
+            useEffect(() => {
+                if (scrollTarget) {
+                    setTimeout(() => {
+                        const element = document.getElementById(scrollTarget);
+                        if (element) {
+                            const headerOffset = 100;
+                            const elementPosition = element.getBoundingClientRect().top;
+                            const offsetPosition = elementPosition + window.scrollY - headerOffset;
+                            window.scrollTo({
+                                top: offsetPosition,
+                                behavior: 'smooth'
+                            });
+                        }
+                    }, 100);
+                }
+            }, [scrollTarget]);
+
+            // クリックハンドラのマッピング
+            const getClickHandler = (id) => {
+                switch (id) {
+                    case 'fulltime': return handleFulltimeClick;
+                    case 'helper': return handleHelperClick;
+                    case 'helper_insured': return handleHelperInsuredClick;
+                    case 'intern': return handleInternClick;
+                    default: return () => { };
+                }
+            };
+
+            // データがない場合のデフォルト表示用
+            const displayCards = recruitCards.length > 0 ? recruitCards : [
+                { id: "helper", title: "登録ヘルパー", amount: "1,800円〜", sub: "時給（身体介護）", features: "週1日・1時間〜OK,直行直帰可,Wワーク歓迎,資格取得支援あり", isHighlight: false, isIntern: false },
+                { id: "helper_insured", title: "登録ヘルパー（社保加入）", amount: "2,000円〜", sub: "処遇改善含む", features: "週1日・1時間〜OK,直行直帰可,社保完備,正社員登用あり", isHighlight: false, isIntern: false },
+                { id: "fulltime", title: "正社員（介護職）", amount: "350,000円〜", sub: "月給（諸手当含む）", features: "週休2日制,事務作業無し,休憩時間に飲料・軽食食べ放題", isHighlight: true, isIntern: false },
+                { id: "intern", title: "職場体験・見学会", amount: "職場体験", sub: "履歴書不要", features: "お仕事の様子を見学,スタッフと座談会,ギフトカード3000円分,美味しいランチ付き", isHighlight: false, isIntern: true }
+            ];
+
+            return (
+                <div className="min-h-screen pt-24 pb-20 relative">
+                    {showModal && (
+                        <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 animate-in fade-in duration-300">
+                            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowModal(false)}></div>
+                            <div className="relative bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full text-center border border-white/50 animate-in zoom-in-95 duration-300">
+                                <div className="w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6"><CheckCircle size={32} /></div>
+                                <h3 className="text-2xl font-black text-slate-800 mb-2">送信完了</h3>
+                                <p className="text-sm text-slate-500 font-medium mb-6 leading-relaxed">ご応募ありがとうございます。<br />メールにて詳細をお送りしますので、今しばらくお待ちください。</p>
+                                <button onClick={() => setShowModal(false)} className="w-full py-3 rounded-xl bg-slate-900 text-white font-bold shadow-lg hover:bg-slate-800 active:scale-95 transition-all">閉じる</button>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="container mx-auto px-6 mb-6 relative">
+
+                        <div className="max-w-4xl mx-auto text-center py-6 px-2">
+                            <h1 className="text-3xl font-black tracking-tight mb-4"><GradientText>求人情報一覧</GradientText></h1>
+                            
+                            <p className="text-sm text-slate-500 font-medium leading-relaxed mb-2">
+                                <span className="inline-block">あなたの</span>
+                                <span className="inline-block text-base font-bold mx-1">
+                                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-orange-600">ライフスタイルに合わせた働き方</span>
+                                </span>
+                                <span className="inline-block">をご用意しています。</span>
+                            </p>
+                            
+                            <p className="text-sm text-slate-500 font-medium leading-relaxed mb-2">
+                                <span className="inline-block">日中お忙しい方にも</span><span className="inline-block">ご利用いただけるよう、</span>
+                                <span className="inline-block">幅広い時間帯で</span>
+                                <span className="inline-block text-base font-bold mx-1">
+                                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-orange-600">面接や面談</span>
+                                </span>
+                                <span className="inline-block">の対応をしております。</span>
+                            </p>
+                            
+                            <p className="text-sm text-slate-500 font-medium leading-relaxed mt-4">
+                                <span className="inline-flex items-center">
+                                    <span className="text-base font-bold mx-1 cursor-pointer underline decoration-orange-300 decoration-2 underline-offset-4 hover:decoration-orange-500 transition-all inline-flex items-center gap-1" onClick={handleScrollToForm}>
+                                        <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-orange-600 inline-block">応募フォームはページ下記</span>
+                                        <ChevronDown size={14} className="text-orange-500 animate-bounce" />
+                                    </span>
+                                    <span className="inline-block">にあります。</span>
+                                </span>
+                                <br className="md:hidden" />
+                                <span className="inline-block">お電話でもフォームからでも</span>
+                                <span className="inline-block">お気軽にお問い合わせください。</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="container mx-auto px-6">
+                        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto mb-12">
+                            {displayCards.map((card, index) => {
+                                // データ構造のマッピング（CSV/スプレッドシートの列名 → コンポーネントのprops）
+                                const features = card.features
+                                    ? (Array.isArray(card.features) ? card.features : card.features.split(','))
+                                    : [card.benefit1, card.benefit2, card.benefit3].filter(Boolean);
+
+                                const amount = card.amount || card.salary || "";
+                                const sub = card.sub || card.subSalary || "";
+                                const isIntern = card.id === 'intern';
+                                const isHighlight = card.id === 'fulltime';
+
+                                return (
+                                    <SalaryCard
+                                        key={index}
+                                        id={card.id}
+                                        title={card.title}
+                                        amount={amount}
+                                        sub={sub}
+                                        features={features}
+                                        isHighlight={isHighlight}
+                                        isIntern={isIntern}
+                                        onClick={getClickHandler(card.id)}
+                                    />
+                                );
+                            })}
+                        </div>
+
+                        {selectedJob === 'fulltime' && (<JobDetailCard onClose={closeJobDetail} data={recruitFulltime} />)}
+                        {selectedJob === 'helper' && (<HelperJobDetailCard onClose={closeJobDetail} data={recruitHelper} />)}
+                        {selectedJob === 'helper_insured' && (<HelperInsuredJobDetailCard onClose={closeJobDetail} data={recruitHelperInsured} />)}
+                        {selectedJob === 'intern' && (<InternJobDetailCard onClose={closeJobDetail} />)}
+
+                        <div id="application-form" className="max-w-3xl mx-auto bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl border border-white/60 overflow-hidden mb-20">
+                            <div className="bg-white/50 border-b border-slate-100 px-8 py-6 flex items-center gap-3"><div className="p-2 bg-orange-50 rounded-lg text-orange-500"><Briefcase size={24} /></div><h2 className="text-xl font-black text-slate-800">面接・見学 応募フォーム</h2></div>
+                            <div className="p-8 md:p-12">
+                                <form className="space-y-8" onSubmit={handleSubmit}>
+                                    <div><label className="block text-sm font-bold text-slate-700 mb-2" htmlFor="recruit-name">❶ お名前 <span className="text-red-500">*</span></label><input type="text" id="recruit-name" required className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all font-medium text-slate-800" placeholder="山田 太郎" /></div>
+                                    <div><label className="block text-sm font-bold text-slate-700 mb-2" htmlFor="recruit-email">❷ メールアドレス（任意）</label><input type="email" id="recruit-email" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all font-medium text-slate-800" placeholder="example@email.com" /><p className="text-xs text-slate-400 mt-1 ml-1">※メールアドレスがない場合は電話でご連絡します。</p></div>
+                                    <div><label className="block text-sm font-bold text-slate-700 mb-2" htmlFor="recruit-phone">❸ 電話番号 <span className="text-red-500">*</span></label><input type="tel" id="recruit-phone" required pattern="\d{2,4}-\d{2,4}-\d{4}" className={`w-full px-4 py-3 rounded-xl bg-slate-50 border ${recruitPhoneError ? 'border-red-400' : 'border-slate-200'} focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all font-medium text-slate-800`} placeholder="000-0000-0000" />{recruitPhoneError && <p className="text-xs text-red-500 mt-1 ml-1">{recruitPhoneError}</p>}<p className="text-xs text-slate-400 mt-1 ml-1">※ハイフン（-）を含めて入力してください</p></div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-3">❹ 連絡希望 <span className="text-red-500">*</span></label>
+                                        <div className="flex gap-4">
+                                            <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors flex-1"><input type="radio" name="recruit-contact-method" className="w-5 h-5 text-orange-500 focus:ring-orange-500 border-gray-300" required onChange={() => setRecruitContactMethod('phone')} /><span className="text-sm font-bold text-slate-600">電話</span></label>
+                                            <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors flex-1"><input type="radio" name="recruit-contact-method" className="w-5 h-5 text-orange-500 focus:ring-orange-500 border-gray-300" required onChange={() => setRecruitContactMethod('email')} /><span className="text-sm font-bold text-slate-600">メール</span></label>
+                                        </div>
+                                        {recruitContactMethod === 'phone' && (
+                                            <div className="mt-3">
+                                                <textarea id="recruit-preferred-time" rows="2" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all font-medium text-slate-800 resize-none" placeholder="希望連絡時間、曜日（例：平日18時以降、土曜日の午前中 など）"></textarea>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div><label className="block text-sm font-bold text-slate-700 mb-3">❺ 希望職種 <span className="text-red-500">*</span></label><div className="flex gap-4"><label className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors flex-1"><input type="radio" name="job-type" className="w-5 h-5 text-orange-500 focus:ring-orange-500 border-gray-300" required /><span className="text-sm font-bold text-slate-600">正社員</span></label><label className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors flex-1"><input type="radio" name="job-type" className="w-5 h-5 text-orange-500 focus:ring-orange-500 border-gray-300" required /><span className="text-sm font-bold text-slate-600">登録ヘルパー</span></label></div></div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-2">❻ 希望面接場所・形式 <span className="text-red-500">*</span></label>
+                                        <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 mb-4">
+                                            <p className="text-sm font-bold text-orange-600 flex items-center gap-2"><Clock size={16} />06：00〜23：00迄対応可能です。</p>
+                                            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                                                <span className="inline-block">お仕事帰りなど、</span><span className="inline-block">遅い時間でも</span><span className="inline-block">お気軽にご相談ください。</span>
+                                            </p>
+                                        </div>
+                                        <div className="space-y-3">
+                                            {/* 面接 */}
+                                            <div className="p-4 rounded-xl border border-slate-100">
+                                                <div className="mb-3">
+                                                    <span className="text-sm font-bold text-slate-700">面接</span>
+                                                    <span className="text-xs text-orange-500 font-bold ml-2">すぐに働きたい！最短翌日から勤務可能！</span>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {['出張（ファミレス等）'].map((loc, i) => (
+                                                            <label key={`mensetu1-${i}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-orange-300 cursor-pointer transition-colors text-xs font-medium text-slate-600">
+                                                                <input type="radio" name="interview-choice" value={`面接（${loc}）`} className="w-3.5 h-3.5 text-orange-500 focus:ring-orange-500 border-gray-300" required />
+                                                                <span>{loc}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {['荒本', '若江'].map((loc, i) => (
+                                                            <label key={`mensetu2-${i}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-orange-300 cursor-pointer transition-colors text-xs font-medium text-slate-600">
+                                                                <input type="radio" name="interview-choice" value={`面接（${loc}）`} className="w-3.5 h-3.5 text-orange-500 focus:ring-orange-500 border-gray-300" required />
+                                                                <span>{loc}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {['布施', '加納'].map((loc, i) => (
+                                                            <label key={`mensetu3-${i}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-orange-300 cursor-pointer transition-colors text-xs font-medium text-slate-600">
+                                                                <input type="radio" name="interview-choice" value={`面接（${loc}）`} className="w-3.5 h-3.5 text-orange-500 focus:ring-orange-500 border-gray-300" required />
+                                                                <span>{loc}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {/* 面談 */}
+                                            <div className="p-4 rounded-xl border border-slate-100">
+                                                <div className="mb-3">
+                                                    <span className="text-sm font-bold text-slate-700">面談</span>
+                                                    <span className="text-xs text-orange-500 font-bold ml-2">悩んでる方や、話を聴いてみたい方に！無資格でも大歓迎！</span>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {['出張（ファミレス等）'].map((loc, i) => (
+                                                            <label key={`mendan1-${i}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-orange-300 cursor-pointer transition-colors text-xs font-medium text-slate-600">
+                                                                <input type="radio" name="interview-choice" value={`面談（${loc}）`} className="w-3.5 h-3.5 text-orange-500 focus:ring-orange-500 border-gray-300" required />
+                                                                <span>{loc}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {['荒本', '若江'].map((loc, i) => (
+                                                            <label key={`mendan2-${i}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-orange-300 cursor-pointer transition-colors text-xs font-medium text-slate-600">
+                                                                <input type="radio" name="interview-choice" value={`面談（${loc}）`} className="w-3.5 h-3.5 text-orange-500 focus:ring-orange-500 border-gray-300" required />
+                                                                <span>{loc}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {['布施', '加納'].map((loc, i) => (
+                                                            <label key={`mendan3-${i}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-orange-300 cursor-pointer transition-colors text-xs font-medium text-slate-600">
+                                                                <input type="radio" name="interview-choice" value={`面談（${loc}）`} className="w-3.5 h-3.5 text-orange-500 focus:ring-orange-500 border-gray-300" required />
+                                                                <span>{loc}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {/* その他 */}
+                                            <div className="p-4 rounded-xl border border-slate-100">
+                                                <div className="mb-3">
+                                                    <span className="text-sm font-bold text-slate-700">その他</span>
+                                                    <span className="text-xs text-orange-500 font-bold ml-2">オンラインでの面接・面談やインターンをご希望の方</span>
+                                                </div>
+                                                <div className="flex flex-wrap gap-2">
+                                                    <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-orange-300 cursor-pointer transition-colors text-xs font-medium text-slate-600">
+                                                        <input type="radio" name="interview-choice" value="オンライン面接" className="w-3.5 h-3.5 text-orange-500 focus:ring-orange-500 border-gray-300" required />
+                                                        <span>オンライン面接</span>
+                                                    </label>
+                                                    <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-orange-300 cursor-pointer transition-colors text-xs font-medium text-slate-600">
+                                                        <input type="radio" name="interview-choice" value="オンライン面談" className="w-3.5 h-3.5 text-orange-500 focus:ring-orange-500 border-gray-300" required />
+                                                        <span>オンライン面談</span>
+                                                    </label>
+                                                    <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-orange-300 cursor-pointer transition-colors text-xs font-medium text-slate-600">
+                                                        <input type="radio" name="interview-choice" value="インターン希望" className="w-3.5 h-3.5 text-orange-500 focus:ring-orange-500 border-gray-300" required />
+                                                        <span>インターン希望</span>
+                                                    </label>
+                                                </div>
+                                                <p className="text-xs text-slate-400 mt-2">※オンライン面接・面談はLINEでのビデオ通話で行います。ご希望の方はZoom、Google Meetも可</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="pt-4"><button type="submit" disabled={isSubmitting} className="w-full py-4 rounded-2xl bg-slate-900 text-white font-bold text-lg shadow-xl hover:bg-slate-800 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:pointer-events-none">{isSubmitting ? <><Loader2 className="animate-spin" size={20} /> 送信中...</> : <>送信する <Send size={20} /></>}</button><p className="text-center text-xs text-slate-400 mt-4 font-medium">ご応募いただいた後、メールまたは電話にて詳細をお送りします。</p></div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div className="max-w-4xl mx-auto bg-white rounded-3xl p-8 md:p-12 shadow-xl border border-slate-50">
+                            <h3 className="text-xl font-black text-slate-800 mb-6 text-center">よくあるご質問</h3>
+                            <div className="space-y-6">
+                                <div><h4 className="font-bold text-orange-600 mb-2">Q. 未経験でも大丈夫ですか？</h4><p className="text-sm text-slate-600">はい、大丈夫です。充実した研修制度があり、先輩スタッフが丁寧に指導しますのでご安心ください。</p></div>
+                                <div><h4 className="font-bold text-orange-600 mb-2">Q. シフトの融通は利きますか？</h4><p className="text-sm text-slate-600">登録ヘルパーの方は週1日、1時間から勤務可能です。お子様の行事や急な用事などでお休みされる場合も40名の社員が在籍しているので対応可能です。</p></div>
+                                <div><h4 className="font-bold text-orange-600 mb-2">Q. 車・バイク通勤は可能ですか？</h4><p className="text-sm text-slate-600">原則バイク、自転車通勤のみとなります。どうしても車でないと難しい場合はご相談下さい。</p></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Contact Page ---
+        const ContactPage = ({ pageSettings: pageSettingsProp = [], navigateToRecruit }) => {
+            const [isSubmitting, setIsSubmitting] = useState(false);
+            const [showModal, setShowModal] = useState(false);
+            const [contactMethod, setContactMethod] = useState('any'); // 'email', 'phone', 'any'
+            const [phoneError, setPhoneError] = useState('');
+
+            const rawSettings = pageSettingsProp.length > 0 ? pageSettingsProp : DEFAULT_DATA.pageSettings;
+
+            // ページ設定を取得するヘルパー関数
+            const getSetting = (key) => {
+                const item = rawSettings.find(i => i.page === 'contact' && i.key === key);
+                return item ? item.value : '';
+            };
+
+            const emailTo = getSetting('送信先メールアドレス') || 'hirayamakodai@asahi4649.com';
+
+            // 電話番号形式バリデーション (000-0000-0000)
+            const validatePhone = (value) => {
+                const phonePattern = /^\d{2,4}-\d{2,4}-\d{4}$/;
+                return phonePattern.test(value);
+            };
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setIsSubmitting(true);
+                setPhoneError('');
+
+                try {
+                    const form = e.target;
+                    const phoneValue = form.querySelector('#phone')?.value || '';
+
+                    // 電話番号形式チェック
+                    if (!validatePhone(phoneValue)) {
+                        setPhoneError('電話番号は000-0000-0000の形式で入力してください');
+                        setIsSubmitting(false);
+                        return;
+                    }
+
+                    const formData = {
+                        formType: 'contact',
+                        name: form.querySelector('#name')?.value || '',
+                        email: form.querySelector('#email')?.value || '',
+                        phone: phoneValue,
+                        contactMethod: form.querySelector('input[name="contact_method"]:checked')?.parentElement?.querySelector('span')?.textContent || '',
+                        message: form.querySelector('#message')?.value || ''
+                    };
+
+                    const response = await fetch(SPREADSHEET_CONFIG.formApiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: JSON.stringify(formData),
+                        mode: 'no-cors'
+                    });
+
+                    // no-corsモードではopaque responseが返る（status=0）が、リクエスト自体は送信済み
+                    console.log('Form submitted (no-cors mode)');
+                    setShowModal(true);
+                    form.reset();
+                    setContactMethod('email');
+                } catch (error) {
+                    console.error('Submit error:', error);
+                    alert('送信に失敗しました。お電話でのお問い合わせをお願いします。\n\nTEL: 06-6746-7800');
+                } finally {
+                    setIsSubmitting(false);
+                }
+            };
+
+            return (
+                <div className="min-h-screen pt-24 pb-20 relative">
+                    {showModal && (
+                        <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 animate-in fade-in duration-300">
+                            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowModal(false)}></div>
+                            <div className="relative bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full text-center border border-white/50 animate-in zoom-in-95 duration-300">
+                                <div className="w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6"><CheckCircle size={32} /></div>
+                                <h3 className="text-2xl font-black text-slate-800 mb-2">送信完了</h3>
+                                <p className="text-sm text-slate-500 font-medium mb-6 leading-relaxed">ご応募ありがとうございます。<br />メールにて詳細をお送りしますので、今しばらくお待ちください。</p>
+                                <button onClick={() => setShowModal(false)} className="w-full py-3 rounded-xl bg-slate-900 text-white font-bold shadow-lg hover:bg-slate-800 active:scale-95 transition-all">閉じる</button>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="container mx-auto px-6 mb-6">
+                        <div className="max-w-4xl mx-auto text-center py-6">
+                            <h1 className="text-3xl font-black tracking-tight mb-3"><GradientText>{getSetting('ページタイトル') || 'お問い合わせ'}</GradientText></h1>
+                            <p className="text-sm text-slate-500 font-medium">{getSetting('ページ説明')}<br className="hidden md:block" />どなた様でもお問い合わせはお気軽にお電話ください。下記のお問い合わせフォームからのご連絡も承っております。</p>
+                            <p className="text-sm text-slate-500 font-medium mt-1">面接や見学については、求人一覧の面接・見学応募フォームよりご応募ください。応募フォームは<span className="text-sm font-bold mx-1 cursor-pointer underline decoration-orange-300 decoration-2 underline-offset-4 hover:decoration-orange-500 transition-all inline-flex items-center gap-1" onClick={() => navigateToRecruit && navigateToRecruit('application-form')}><span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-orange-600">こちら</span><ChevronDown size={10} className="text-orange-500 animate-bounce" /></span></p>
+                        </div>
+                    </div>
+
+                    <div className="container mx-auto px-6 mb-12">
+                        <div className="max-w-3xl mx-auto bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl border border-white/60 overflow-hidden">
+                            <div className="bg-white/50 border-b border-slate-100 px-8 py-6 flex items-center gap-3"><div className="p-2 bg-orange-50 rounded-lg text-orange-500"><Mail size={24} /></div><h2 className="text-xl font-black text-slate-800">お問い合わせフォーム</h2></div>
+                            <div className="p-8 md:p-12">
+                                <form className="space-y-8" onSubmit={handleSubmit}>
+                                    <div><label className="block text-sm font-bold text-slate-700 mb-2" htmlFor="name">❶ お名前 <span className="text-red-500">*</span></label><input type="text" id="name" required className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all font-medium text-slate-800" placeholder="山田 太郎" /></div>
+                                    <div><label className="block text-sm font-bold text-slate-700 mb-2" htmlFor="email">❷ メールアドレス{contactMethod === 'email' ? <span className="text-red-500"> *</span> : <span className="text-slate-400 text-xs ml-1">（任意）</span>}</label><input type="email" id="email" required={contactMethod === 'email'} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all font-medium text-slate-800" placeholder="example@email.com" />{contactMethod !== 'email' && <p className="text-xs text-slate-400 mt-1 ml-1">※メールアドレスがない場合は電話でご連絡します。</p>}</div>
+                                    <div><label className="block text-sm font-bold text-slate-700 mb-2" htmlFor="phone">❸ 電話番号 <span className="text-red-500">*</span></label><input type="tel" id="phone" required pattern="\d{2,4}-\d{2,4}-\d{4}" className={`w-full px-4 py-3 rounded-xl bg-slate-50 border ${phoneError ? 'border-red-400' : 'border-slate-200'} focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all font-medium text-slate-800`} placeholder="000-0000-0000" />{phoneError && <p className="text-xs text-red-500 mt-1 ml-1">{phoneError}</p>}<p className="text-xs text-slate-400 mt-1 ml-1">※ハイフン（-）を含めて入力してください</p></div>
+                                    <div><label className="block text-sm font-bold text-slate-700 mb-3">❹ 連絡方法 <span className="text-red-500">*</span></label><div className="space-y-3"><label className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors"><input type="radio" name="contact_method" value="email" className="w-5 h-5 text-orange-500 focus:ring-orange-500 border-gray-300" checked={contactMethod === 'email'} onChange={() => setContactMethod('email')} required /><span className="text-sm font-bold text-slate-600">メール連絡を希望します</span></label><label className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors"><input type="radio" name="contact_method" value="phone" className="w-5 h-5 text-orange-500 focus:ring-orange-500 border-gray-300" checked={contactMethod === 'phone'} onChange={() => setContactMethod('phone')} /><span className="text-sm font-bold text-slate-600">電話連絡を希望します</span></label><label className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors"><input type="radio" name="contact_method" value="any" className="w-5 h-5 text-orange-500 focus:ring-orange-500 border-gray-300" checked={contactMethod === 'any'} onChange={() => setContactMethod('any')} /><span className="text-sm font-bold text-slate-600">どちらでも構いません</span></label></div></div>
+                                    <div><label className="block text-sm font-bold text-slate-700 mb-2" htmlFor="message">❺ メッセージ本文 <span className="text-red-500">*</span></label><textarea id="message" required rows="6" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all font-medium text-slate-800 resize-none" placeholder="お問い合わせ内容をご記入ください"></textarea></div>
+                                    <div className="pt-4"><button type="submit" disabled={isSubmitting} className="w-full py-4 rounded-2xl bg-slate-900 text-white font-bold text-lg shadow-xl hover:bg-slate-800 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:pointer-events-none">{isSubmitting ? <><Loader2 className="animate-spin" size={20} /> 送信中...</> : <>送信する <Send size={20} /></>}</button><p className="text-center text-xs text-slate-400 mt-4 font-medium whitespace-pre-line">{getSetting('フォーム下部メッセージ')}</p></div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Main App Component ---
+        const App = () => {
+            const [isMenuOpen, setIsMenuOpen] = useState(false);
+            const [scrolled, setScrolled] = useState(false);
+            const [view, setView] = useState('home');
+            const [recruitScrollTarget, setRecruitScrollTarget] = useState(null);
+
+            // スプレッドシートデータの状態管理
+            const [newsData, setNewsData] = useState(DEFAULT_DATA.news);
+            const [sliderData, setSliderData] = useState(DEFAULT_DATA.slider);
+            const [staffData, setStaffData] = useState(DEFAULT_DATA.staff);
+            const [historyData, setHistoryData] = useState(DEFAULT_DATA.history);
+            const [facilitiesData, setFacilitiesData] = useState(DEFAULT_DATA.facilities);
+            const [companyInfo, setCompanyInfo] = useState(DEFAULT_DATA.companyInfo);
+            const [recruitCards, setRecruitCards] = useState(DEFAULT_DATA.recruitCards);
+            const [recruitFulltime, setRecruitFulltime] = useState([]);
+            const [recruitHelper, setRecruitHelper] = useState([]);
+            const [recruitHelperInsured, setRecruitHelperInsured] = useState([]);
+            const [recruitIntern, setRecruitIntern] = useState([]);
+            const [pageSettings, setPageSettings] = useState(DEFAULT_DATA.pageSettings);
+            const [statsData, setStatsData] = useState([]);
+            const [dataLoading, setDataLoading] = useState(true);
+
+            // バッチAPIで全データを一括取得（高速化 + キャッシュ: SWRパターン）
+            useEffect(() => {
+                const CACHE_KEY = 'hp_batch_data_v8';
+
+                // データ適用ロジックを共通化
+                const applyBatchData = (batchData) => {
+                    // トップページデータ
+                    if (batchData['トップページ']) {
+                        const topPage = batchData['トップページ'];
+                        if (topPage['ニュース']?.length > 0) setNewsData(topPage['ニュース']);
+                        if (topPage['スライダー']?.length > 0) setSliderData(topPage['スライダー']);
+                        if (topPage['統計データ']?.length > 0) setStatsData(topPage['統計データ']);
+                    }
+
+                    // 会社概要データ
+                    if (batchData['会社概要']) {
+                        const company = batchData['会社概要'];
+                        if (company['会社情報']?.length > 0) setCompanyInfo(company['会社情報']);
+                        if (company['沿革']?.length > 0) setHistoryData(company['沿革']);
+                    }
+
+                    // 社員紹介データ
+                    if (batchData['社員紹介']?.length > 0) {
+                        setStaffData(batchData['社員紹介']);
+                    }
+
+                    // 事業所一覧データ
+                    if (batchData['事業所一覧']) {
+                        const facilities = batchData['事業所一覧'];
+                        if (facilities['画像一覧']?.length > 0) setFacilitiesData(facilities['画像一覧']);
+                        // 施設情報やページテキストがあればここに追加
+                    }
+
+                    // 求人データ
+                    if (batchData['求人']) {
+                        const recruit = batchData['求人'];
+                        if (recruit['カード一覧']?.length > 0) {
+                            // helper_insuredカードがスプレッドシートにない場合、デフォルトから追加
+                            let cards = recruit['カード一覧'];
+                            const hasHelperInsured = cards.some(c => c.id === 'helper_insured');
+                            if (!hasHelperInsured) {
+                                const defaultHelperInsured = DEFAULT_DATA.recruitCards.find(c => c.id === 'helper_insured');
+                                if (defaultHelperInsured) {
+                                    cards = [...cards, defaultHelperInsured].sort((a, b) => (a.order || 0) - (b.order || 0));
+                                }
+                            }
+                            setRecruitCards(cards);
+                        }
+                        if (recruit['正社員詳細']?.length > 0) setRecruitFulltime(recruit['正社員詳細']);
+                        if (recruit['登録ヘルパー詳細']?.length > 0) setRecruitHelper(recruit['登録ヘルパー詳細']);
+                        if (recruit['社保ヘルパー詳細']?.length > 0) setRecruitHelperInsured(recruit['社保ヘルパー詳細']);
+                        if (recruit['職場体験詳細']?.length > 0) setRecruitIntern(recruit['職場体験詳細']);
+                    }
+
+                    // お問い合わせデータ
+                    if (batchData['お問い合わせ']?.length > 0) {
+                        setPageSettings(batchData['お問い合わせ']);
+                    }
+                };
+
+                const loadAllData = async () => {
+                    // 1. キャッシュがあれば即座に表示（Stale-While-Revalidate）
+                    const cached = localStorage.getItem(CACHE_KEY);
+                    let isCachedDataLoaded = false;
+
+                    if (cached) {
+                        try {
+                            const data = JSON.parse(cached);
+                            console.log('[CACHE] キャッシュからデータを読み込みました');
+                            applyBatchData(data);
+                            setDataLoading(false); // キャッシュがあれば待機なし
+                            isCachedDataLoaded = true;
+                        } catch (e) {
+                            console.error('キャッシュパースエラー:', e);
+                            localStorage.removeItem(CACHE_KEY);
+                        }
+                    }
+
+                    if (!isCachedDataLoaded) {
+                        setDataLoading(true); // キャッシュがない場合のみローディング
+                    }
+
+                    // 2. 裏で最新データを取得して更新
+                    try {
+                        const url = `${SPREADSHEET_CONFIG.apiUrl}?mode=batch&_t=${Date.now()}`;
+                        const response = await fetch(url);
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+
+                        const batchData = await response.json();
+                        console.log('[API] 最新データ取得成功:', batchData);
+
+                        if (Array.isArray(batchData)) {
+                            // 旧形式のデータは無視または警告
+                            console.warn('旧形式のデータ構造が返されました。GASを更新してください。');
+                            return;
+                        }
+
+                        if (batchData.error) {
+                            throw new Error(batchData.error);
+                        }
+
+                        // ステート更新とキャッシュ保存
+                        applyBatchData(batchData);
+                        localStorage.setItem(CACHE_KEY, JSON.stringify(batchData));
+
+                    } catch (error) {
+                        console.error('データ更新エラー:', error);
+                        // キャッシュがあればエラーはユーザーに見せない（サイレントフェール）
+                        if (!isCachedDataLoaded) {
+                            alert('データの読み込みに失敗しました。');
+                        }
+                    } finally {
+                        setDataLoading(false);
+                    }
+                };
+
+                loadAllData();
+            }, []);
+
+            useEffect(() => {
+                const handleScroll = () => setScrolled(window.scrollY > 20);
+                window.addEventListener('scroll', handleScroll);
+                return () => window.removeEventListener('scroll', handleScroll);
+            }, []);
+
+            // データロード完了後にローディング画面を消す
+            useEffect(() => {
+                const loadingEl = document.getElementById('loading');
+                if (!dataLoading && loadingEl) {
+                    loadingEl.style.opacity = '0';
+                    setTimeout(() => loadingEl.remove(), 500);
+                }
+            }, [dataLoading]);
+
+            const navigateTo = (targetView) => {
+                setView(targetView);
+                setIsMenuOpen(false);
+                window.scrollTo(0, 0);
+            };
+
+            const navigateToRecruit = (targetId = null) => {
+                setView('recruit');
+                setRecruitScrollTarget(targetId);
+                setIsMenuOpen(false);
+                window.scrollTo(0, 0);
+            };
+
+            // 統計データからカテゴリ別の値を取得するヘルパー関数
+            const getStat = (category, key) => {
+                const item = statsData.find(s => s.category === category && s.key === key);
+                return item ? item.value : null;
+            };
+
+            // 訪問エリアデータを取得
+            const getAreaData = () => {
+                const areaItems = statsData.filter(s => s.category === '訪問エリア');
+                if (areaItems.length === 0) return [];
+                const colorMap = { '東大阪': '#3B82F6', '大東': '#1E293B', '大阪': '#94A3B8', '他': '#E2E8F0' };
+                return areaItems.map(item => ({
+                    name: item.key,
+                    value: Number(item.value) || 0,
+                    color: colorMap[item.key] || '#E2E8F0'
+                }));
+            };
+
+            // 男女比率データを取得
+            const getGenderRatio = (type) => {
+                const male = Number(getStat(`男女比率_${type}`, '男')) || (type === '社員' ? 54 : 20);
+                const female = Number(getStat(`男女比率_${type}`, '女')) || (type === '社員' ? 46 : 80);
+                return { male, female };
+            };
+
+            // 数値統計を取得（デフォルト値付き）
+            const getNumericStat = (category, defaultValue) => {
+                const item = statsData.find(s => s.category === category);
+                return item ? String(item.value) : defaultValue;
+            };
+
+            const renderCurrentView = () => {
+                switch (view) {
+                    case 'news': return <NewsPage newsData={newsData} />;
+                    case 'recruit': return <RecruitPage onBack={() => navigateTo('home')} scrollTarget={recruitScrollTarget} recruitCards={recruitCards} recruitFulltime={recruitFulltime} recruitHelper={recruitHelper} recruitHelperInsured={recruitHelperInsured} recruitIntern={recruitIntern} />;
+                    case 'company': return <CompanyPage companyInfo={companyInfo} historyData={historyData} />;
+                    case 'staff': return <StaffPage staffData={staffData} />;
+                    case 'contact': return <ContactPage pageSettings={pageSettings} navigateToRecruit={navigateToRecruit} />;
+                    case 'facilities': return <FacilitiesPage facilitiesData={facilitiesData} />;
+                    default: return (
+                        <>
+                            <header id="top" className="relative pt-36 pb-12 overflow-hidden">
+                                <div className="container mx-auto px-6 relative z-10">
+                                    {/* Recruit タイトル - グリッドの上に配置 (PC用: lg以上) */}
+                                    <div className="hidden lg:flex items-center justify-between mb-4">
+                                        <div className="w-1/2"></div>
+                                        <div className="w-1/2 pl-3">
+                                            <h2 className="text-2xl font-black text-slate-900 tracking-tight"><GradientText>Recruit</GradientText></h2>
+                                        </div>
+                                    </div>
+                                    {/* スマホ・タブレット: 縦並び / PC(lg以上): 横並び */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch mb-8">
+                                        {/* スライダー */}
+                                        <div className="aspect-[16/9] lg:aspect-auto lg:h-full rounded-3xl overflow-hidden shadow-lg bg-slate-200">
+                                            {dataLoading ? (
+                                                <div className="w-full h-full bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 animate-pulse flex items-center justify-center">
+                                                    <div className="text-slate-300"><ImageIcon size={48} /></div>
+                                                </div>
+                                            ) : (
+                                                <PhotoSlider sliderData={sliderData} />
+                                            )}
+                                        </div>
+                                        {/* Recruit セクション - スマホ:縦1列 / タブレット:2列 / PC:2x2グリッド */}
+                                        <div className="flex flex-col gap-3 lg:gap-0">
+                                            <h2 className="lg:hidden text-2xl font-black text-slate-900 tracking-tight"><GradientText>Recruit</GradientText></h2>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3 lg:gap-2 flex-1 lg:h-full content-between">
+                                                {recruitCards.sort((a, b) => a.order - b.order).map((card, idx) => {
+                                                    const benefits = [card.benefit1, card.benefit2, card.benefit3].filter(b => b);
+                                                    let displaySalary = card.salary;
+                                                    // スマホ・タブレット・PC（2xl未満）で文字数が長すぎてレイアウト崩れするため、短い表記にする
+                                                    if (String(card.salary).includes('3,000円')) {
+                                                        displaySalary = (
+                                                            <>
+                                                                <span className="2xl:hidden">3,000円商品券</span>
+                                                                <span className="hidden 2xl:inline">{card.salary}</span>
+                                                            </>
+                                                        );
+                                                    }
+                                                    return (<SalaryHeroCard key={card.id} title={card.title} salary={displaySalary} subSalary={card.subSalary} benefits={benefits} colorClass={card.colorClass} onClick={() => navigateToRecruit(card.id)} />);
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {/* News & Topics and Staff Introduction Section */}
+                                    <div className="grid md:grid-cols-2 gap-6 items-stretch mt-8">
+                                        {/* News & Topics (Left) */}
+                                        <div className="h-full flex flex-col gap-4">
+                                            <div className="flex items-center justify-between px-1">
+                                                <h2 className="text-2xl font-black text-slate-900 tracking-tight"><GradientText>News & Topics</GradientText></h2>
+                                            </div>
+                                            <div className="flex-grow h-full bg-white/50 rounded-3xl overflow-hidden shadow-sm border border-white/50">
+                                                <NewsWindow newsData={newsData} onNavigate={() => navigateTo('news')} />
+                                            </div>
+                                        </div>
+
+                                        {/* Staff Introduction (Right) */}
+                                        <div className="h-full flex flex-col gap-4">
+                                            <div className="flex items-center justify-between px-1">
+                                                <div className="flex items-center gap-2">
+
+                                                    <h2 className="text-2xl font-black text-slate-900 tracking-tight"><GradientText>社員紹介</GradientText></h2>
+                                                </div>
+                                                <button onClick={() => navigateTo('staff')} className="text-xs font-bold text-orange-500 hover:text-orange-600 flex items-center gap-1 transition-colors">
+                                                    もっと見る <ArrowRight size={14} />
+                                                </button>
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {staffData.slice(0, 2).map((staff, index) => (
+                                                    <StaffCard
+                                                        key={index}
+                                                        {...staff}
+                                                        onClick={() => navigateTo('staff')}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 訪問エリア & 数字で見る Section */}
+                                    <div className="grid md:grid-cols-2 gap-6 items-start mt-8">
+                                        {/* 訪問エリア (Left) */}
+                                        <div className="flex flex-col gap-4">
+                                            <div className="flex items-center justify-between px-1">
+                                                <h2 className="text-2xl font-black text-slate-900 tracking-tight"><GradientText>訪問エリア</GradientText></h2>
+                                            </div>
+                                            <div className="space-y-3">
+                                                {/* エリア詳細リスト */}
+                                                <div className="bg-white rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-white/50 overflow-hidden">
+                                                    {[
+                                                        { area: '東大阪市', badge: '中心エリア', badgeColor: 'bg-orange-500', desc: '事業所から近く、訪問件数も豊富です。' },
+                                                        { area: '八尾市', badge: '積極採用エリア', badgeColor: 'bg-orange-400', desc: (<>ニーズが高く、スタッフを募集中です！</>)},
+                                                        { area: '大東市', badge: null, badgeColor: null, desc: '事業所からのアクセス良好です。' },
+                                                        { area: '鶴見区（大阪市）', badge: null, badgeColor: null, desc: '大阪市内の訪問も一部対応しています。' },
+                                                        { area: '門真市', badge: null, badgeColor: null, desc: '生活圏に合わせたシフト調整が可能です。' },
+                                                        { area: '四條畷市', badge: null, badgeColor: null, desc: '落ち着いたエリアでの訪問が中心です。' },
+                                                        { area: '寝屋川市', badge: null, badgeColor: null, desc: '直行直帰もOK！効率よく働けます。' },
+                                                    ].map((item, idx) => (
+                                                        <div key={idx} className={`flex items-center gap-3 px-4 py-3 ${idx !== 6 ? 'border-b border-slate-50' : ''} hover:bg-orange-50/30 transition-colors`}>
+                                                            <MapPin size={16} className="text-orange-400 shrink-0" />
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex items-center gap-2 flex-wrap">
+                                                                    <span className="text-sm font-black text-slate-800">{item.area}</span>
+                                                                    {item.badge && (
+                                                                        <span className={`${item.badgeColor} text-white text-[10px] font-bold px-2 py-0.5 rounded-full`}>{item.badge}</span>
+                                                                    )}
+                                                                </div>
+                                                                <p className="text-xs text-slate-500 font-medium mt-0.5">{item.desc}</p>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                    <div className="px-4 py-2 bg-slate-50/50">
+                                                        <p className="text-[10px] text-slate-400 font-medium">※上記エリア以外でもご相談いただけますので、お気軽にお問い合わせください。</p>
+                                                    </div>
+                                                </div>
+
+                                                {/* エリアマップ画像 */}
+                                                <div className="rounded-2xl shadow-lg overflow-hidden">
+                                                    <img src="area_map.png" alt="訪問エリアマップ - 事業所から車で20分圏内が中心です" className="w-full h-auto" loading="lazy" />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* 数字で見る (Right) */}
+                                        <div className="flex flex-col gap-3">
+                                            <div className="flex items-center justify-between px-1">
+                                                <h2 className="text-2xl font-black text-slate-900 tracking-tight"><GradientText>数字で見る</GradientText></h2>
+                                                <span className="text-[10px] font-bold text-slate-400">毎月月初に更新</span>
+                                            </div>
+                                            <div className="space-y-2.5">
+                                                {/* 平均年収 + 特徴カード */}
+                                                <div className="grid grid-cols-3 gap-2.5">
+                                                    <div className="col-span-2 bg-white/80 backdrop-blur-sm px-4 py-3 rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-white/50">
+                                                        <div className="flex items-center gap-2 mb-0.5">
+                                                            <div className="p-1 bg-slate-50 rounded-xl"><Coins size={16} style={{ stroke: "url(#gold-gradient)" }} /></div>
+                                                            <span className="font-bold text-xs tracking-wider text-slate-400 uppercase">社員の平均年収</span>
+                                                        </div>
+                                                        <div className="flex items-end justify-between">
+                                                            <div className="flex items-baseline gap-1.5">
+                                                                <span className="text-7xl font-black tracking-tighter leading-none"><GradientText>{getNumericStat('平均年収', '600')}</GradientText></span>
+                                                                <span className="text-2xl font-bold text-slate-400">万円</span>
+                                                            </div>
+                                                            <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-lg mb-2">{getNumericStat('平均年収注釈', '※業界平均 350〜400万円')}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="bg-white rounded-2xl p-3 shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-white/50 text-center hover:shadow-md transition-all flex flex-col items-center justify-center">
+                                                        <div className="w-8 h-8 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-2">
+                                                            <Home size={16} className="text-orange-500" />
+                                                        </div>
+                                                        <p className="text-[11px] font-bold text-slate-500 leading-tight">自宅から近いエリアで</p>
+                                                        <p className="text-sm font-black text-slate-800 mt-0.5">無理なく働ける</p>
+                                                    </div>
+                                                </div>
+                                                {/* 男女比率（2/3幅） */}
+                                                <div className="grid grid-cols-3 gap-2.5">
+                                                    <div className="col-span-2 bg-white/80 backdrop-blur-sm p-4 rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-white/50">
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <div className="p-1 bg-slate-50 rounded-xl"><Users size={16} style={{ stroke: "url(#purple-gradient)" }} /></div>
+                                                            <h4 className="text-sm font-bold text-slate-500">男女比率</h4>
+                                                        </div>
+                                                        <div className="space-y-2.5">
+                                                            <div>
+                                                                <div className="flex justify-between text-xs font-bold text-slate-700 mb-1"><span>社員</span><span>男{getGenderRatio('社員').male} : 女{getGenderRatio('社員').female}</span></div>
+                                                                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden flex"><div style={{ width: `${getGenderRatio('社員').male}%` }} className="bg-orange-400"></div><div style={{ width: `${getGenderRatio('社員').female}%` }} className="bg-slate-800"></div></div>
+                                                            </div>
+                                                            <div>
+                                                                <div className="flex justify-between text-xs font-bold text-slate-700 mb-1"><span>登録ヘルパー</span><span>男{getGenderRatio('ヘルパー').male} : 女{getGenderRatio('ヘルパー').female}</span></div>
+                                                                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden flex"><div style={{ width: `${getGenderRatio('ヘルパー').male}%` }} className="bg-orange-400"></div><div style={{ width: `${getGenderRatio('ヘルパー').female}%` }} className="bg-slate-800"></div></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {/* 従業員数 & 利用者数 & バイク台数 */}
+                                                <div className="grid grid-cols-3 gap-2.5">
+                                                    <StatCard icon={Users} title="従業員数" value={getNumericStat('従業員数', '127')} unit="名" gradientId="purple-gradient" />
+                                                    <StatCard icon={Accessibility} title="利用者数" value={getNumericStat('利用者数', '484')} unit="名" gradientId="blue-gradient" />
+                                                    <StatCard icon={Bike} title="社用バイク" value={getNumericStat('バイク台数', '60')} unit="台" subText={getNumericStat('バイク内訳', '125cc 37台/電動自転車9台/他原付 17台')} gradientId="green-gradient" />
+                                                </div>
+                                                {/* 年齢分布（統合） */}
+                                                <div className="bg-white/80 backdrop-blur-sm p-4 rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-white/50">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="p-1 bg-slate-50 rounded-xl"><Users size={16} style={{ stroke: "url(#orange-gradient)" }} /></div>
+                                                            <h4 className="text-sm font-bold text-slate-500">年齢分布</h4>
+                                                        </div>
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="flex items-center gap-1"><div className="w-3 h-2 bg-orange-400 rounded-full"></div><span className="text-[10px] font-bold text-slate-500">社員</span></div>
+                                                            <div className="flex items-center gap-1"><div className="w-3 h-2 bg-slate-700 rounded-full"></div><span className="text-[10px] font-bold text-slate-500">ヘルパー</span></div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-1.5">
+                                                        {[
+                                                            { age: '10代', employee: 0, helper: 3 },
+                                                            { age: '20代', employee: 12, helper: 12 },
+                                                            { age: '30代', employee: 8, helper: 13 },
+                                                            { age: '40代', employee: 5, helper: 14 },
+                                                            { age: '50代', employee: 11, helper: 27 },
+                                                            { age: '60代', employee: 3, helper: 20 },
+                                                            { age: '70代', employee: 0, helper: 5 },
+                                                        ].map((item, idx) => {
+                                                            const maxCount = 38;
+                                                            const empWidth = (item.employee / maxCount) * 100;
+                                                            const helperWidth = (item.helper / maxCount) * 100;
+                                                            return (
+                                                                <div key={idx} className="flex items-center gap-1.5">
+                                                                    <span className="text-[11px] font-bold text-slate-500 w-8 shrink-0">{item.age}</span>
+                                                                    <div className="w-2 h-2 rounded-full bg-slate-300 shrink-0"></div>
+                                                                    <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden flex">
+                                                                        {item.employee > 0 && <div className="h-full bg-orange-400" style={{ width: `${empWidth}%` }}></div>}
+                                                                        {item.helper > 0 && <div className="h-full bg-slate-700" style={{ width: `${helperWidth}%` }}></div>}
+                                                                    </div>
+                                                                    <span className="text-[10px] font-bold text-orange-500 w-6 text-right">{item.employee || '-'}</span>
+                                                                    <span className="text-[10px] font-bold text-slate-600 w-6 text-right">{item.helper}</span>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                                {/* 2つの特徴カード */}
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {[
+                                                        { icon: Clock, title: '直行直帰OKで', desc: '時間を有効活用' },
+                                                        { icon: Shield, title: '研修・サポート体制が', desc: '充実で安心！' },
+                                                    ].map((item, idx) => (
+                                                        <div key={idx} className="bg-white rounded-2xl p-3 shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-white/50 text-center hover:shadow-md transition-all">
+                                                            <div className="w-8 h-8 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-2">
+                                                                <item.icon size={16} className="text-orange-500" />
+                                                            </div>
+                                                            <p className="text-[11px] font-bold text-slate-500 leading-tight">{item.title}</p>
+                                                            <p className="text-sm font-black text-slate-800 mt-0.5">{item.desc}</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </header>
+                        </>
+                    );
+                }
+            };
+
+            return (
+                <div className="min-h-screen font-sans text-slate-800 flex flex-col relative">
+                    <GlobalBackground />
+                    <IconGradients />
+
+                    <nav className="fixed top-0 z-50 w-full transition-all duration-300 bg-white/95 backdrop-blur-md shadow-md py-3">
+                        <div className="container mx-auto px-6 flex items-center justify-between">
+                            <div className="cursor-pointer group" onClick={() => navigateTo('home')}><div className={`flex items-center gap-2 transition-all duration-300`}><Logo textColor="text-orange-500" /></div></div>
+                            <div className="hidden lg:flex items-center gap-6 text-sm font-bold transition-colors duration-300 text-slate-800">
+                                <button onClick={() => navigateTo('home')} className="hover:text-slate-600 transition-colors whitespace-nowrap">トップページ</button>
+                                <button onClick={() => navigateTo('company')} className="hover:text-slate-600 transition-colors whitespace-nowrap">会社概要</button>
+                                <button onClick={() => navigateTo('staff')} className="hover:text-slate-600 transition-colors whitespace-nowrap">社員紹介</button>
+                                <button onClick={() => navigateTo('facilities')} className="hover:text-slate-600 transition-colors whitespace-nowrap">事業所一覧</button>
+                                <button onClick={() => navigateToRecruit(null)} className="hover:text-slate-600 transition-colors whitespace-nowrap">求人一覧</button>
+                                <button onClick={() => navigateTo('contact')} className="hover:text-slate-600 transition-colors whitespace-nowrap">お問い合わせ</button>
+                                <div className="flex items-center gap-3 border-l border-slate-300 pl-4">
+                                    <a href="https://www.instagram.com/lifesupport__asahi?igsh=a3ViYjRnZW9haDA0" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center hover:scale-110 transition-transform"><IconGradients /><InstagramGradient size={22} /></a>
+                                    <a href="https://www.tiktok.com/@lifesupportasahi?_r=1&_t=ZS-933eSshEnRv" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center hover:scale-110 transition-transform"><TikTokGlitch size={20} /></a>
+                                    <a href="https://youtube.com/channel/UCGCe56h_8FMtivkiG5aZqhQ?si=5-nnYr9SsupOtLn0" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center hover:scale-110 transition-transform"><YoutubeButton size={16} /></a>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2 md:gap-3">
+                                <div className="flex lg:hidden items-center gap-2">
+                                    <a href="https://www.instagram.com/lifesupport__asahi?igsh=a3ViYjRnZW9haDA0" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center"><IconGradients /><InstagramGradient size={20} /></a>
+                                    <a href="https://www.tiktok.com/@lifesupportasahi?_r=1&_t=ZS-933eSshEnRv" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center"><TikTokGlitch size={18} /></a>
+                                    <a href="https://youtube.com/channel/UCGCe56h_8FMtivkiG5aZqhQ?si=5-nnYr9SsupOtLn0" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center"><YoutubeButton size={14} /></a>
+                                </div>
+                                <button onClick={() => navigateToRecruit(null)} className="hidden lg:block rounded-full px-6 py-2.5 text-xs font-bold shadow-lg hover:scale-105 active:scale-95 transition-all bg-orange-500 text-white hover:bg-orange-600 whitespace-nowrap">求人に応募する</button><button className="lg:hidden p-2 text-slate-900" onClick={() => setIsMenuOpen(!isMenuOpen)}>{isMenuOpen ? <X size={28} /> : <Menu size={28} />}</button></div>
+                        </div>
+                        {isMenuOpen && (<div className="absolute top-full left-0 w-full bg-white shadow-xl lg:hidden flex flex-col border-t border-slate-100 animate-in slide-in-from-top-5 duration-200"><button onClick={() => navigateTo('home')} className="text-left font-bold text-slate-600 py-5 px-8 border-b border-slate-100 active:bg-slate-50">トップページ</button><button onClick={() => navigateTo('company')} className="text-left font-bold text-slate-600 py-5 px-8 border-b border-slate-100 active:bg-slate-50">会社概要</button><button onClick={() => navigateTo('staff')} className="text-left font-bold text-slate-600 py-5 px-8 border-b border-slate-100 active:bg-slate-50">社員紹介</button><button onClick={() => navigateTo('facilities')} className="text-left font-bold text-slate-600 py-5 px-8 border-b border-slate-100 active:bg-slate-50">事業所一覧</button><button onClick={() => navigateToRecruit(null)} className="text-left font-bold text-white bg-orange-500 py-5 px-8 active:bg-orange-600 flex justify-between items-center">求人一覧を見る <ArrowRight size={16} /></button><button onClick={() => navigateTo('contact')} className="text-left font-bold text-slate-600 py-5 px-8 border-b border-slate-100 active:bg-slate-50">お問い合わせ</button></div>)}
+                    </nav>
+                    <main className="flex-grow">{renderCurrentView()}</main>
+                    <FloatingPhoneButton />
+                    <Footer onNavigate={navigateTo} />
+                </div>
+            );
+        };
+
+        export default App;

@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(mkdir -p /c/dev/HP-build)",
+      "Bash(robocopy \"C:\\\\Users\\\\harun\\\\OneDrive\\\\ドキュメント\\\\常駐用\\\\旭\\\\HP\" \"C:\\\\dev\\\\HP-build\" /E /XD node_modules dist .git out /XF build.log debug.log error.log vite.log /NFL /NDL /NJH)",
+      "Bash(echo \"ROBOCOPY_EXIT=$?\")",
+      "PowerShell($src = \"C:\\\\Users\\\\harun\\\\OneDrive\\\\ドキュメント\\\\常駐用\\\\旭\\\\HP\"; $dst = \"C:\\\\dev\\\\HP-build\"; if \\(-not \\(Test-Path \"C:\\\\dev\"\\)\\) { New-Item -ItemType Directory -Path \"C:\\\\dev\" | Out-Null }; if \\(Test-Path $dst\\) { Remove-Item -Path $dst -Recurse -Force }; New-Item -ItemType Directory -Path $dst | Out-Null; robocopy $src $dst /E /XD node_modules dist .git out /XF build.log debug.log error.log vite.log /NFL /NDL /NJH /NJS; Write-Output \"ROBOCOPY_EXIT=$LASTEXITCODE\")",
+      "PowerShell(Push-Location \"C:\\\\dev\\\\HP-build\"; npm install 2>&1 | Select-Object -Last 30; Write-Output \"INSTALL_EXIT=$LASTEXITCODE\"; Pop-Location)",
+      "PowerShell(Push-Location \"C:\\\\dev\\\\HP-build\"; npm run build 2>&1; Write-Output \"BUILD_EXIT=$LASTEXITCODE\"; Pop-Location)",
+      "PowerShell($origDist = \"C:\\\\Users\\\\harun\\\\OneDrive\\\\ドキュメント\\\\常駐用\\\\旭\\\\HP\\\\dist\"; if \\(Test-Path $origDist\\) { Remove-Item -Path $origDist -Recurse -Force }; robocopy \"C:\\\\dev\\\\HP-build\\\\dist\" $origDist /E /NFL /NDL /NJH /NJS; Write-Output \"COPYBACK_EXIT=$LASTEXITCODE\"; Get-ChildItem $origDist -Recurse | Select-Object FullName, Length | Format-Table -AutoSize)"
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+<IfModule mod_rewrite.c>
+RewriteEngine On
+
+# 1. http を https にする設定
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+# 2. 旧HPの日本語URLをトップページへ転送する設定（前回分）
+RewriteRule ^会社概要/?$ / [R=301,L]
+RewriteRule ^事業所一覧/?$ / [R=301,L]
+RewriteRule ^正社員/?$ / [R=301,L]
+RewriteRule ^登録ヘルパー/?$ / [R=301,L]
+RewriteRule ^介護保険サービス/?$ / [R=301,L]
+
+# 3. 今回追加分
+RewriteRule ^お問い合わせ/?$ / [R=301,L]
+RewriteRule ^事業所一覧/荒本北8/?$ / [R=301,L]
+RewriteRule ^数字で見るライフサポートあさひ/?$ / [R=301,L]
+RewriteRule ^訪問範囲/?$ / [R=301,L]
+RewriteRule ^求人に応募する/?$ / [R=301,L]
+RewriteRule ^ﾗｲﾌｻﾎﾟｰﾄ/?$ / [R=301,L]
+RewriteRule ^株式会社-旭-5/?$ / [R=301,L]
+</IfModule>
