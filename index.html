@@ -101,7 +101,7 @@
             "currency": "JPY",
             "value": {
                 "@type": "QuantitativeValue",
-                "minValue": 350000,
+                "value": 350000,
                 "unitText": "MONTH"
             }
         },
@@ -148,7 +148,7 @@
             "currency": "JPY",
             "value": {
                 "@type": "QuantitativeValue",
-                "minValue": 1800,
+                "value": 1800,
                 "unitText": "HOUR"
             }
         },
@@ -437,9 +437,9 @@
         const SPREADSHEET_CONFIG = {
             // ここにGoogle Apps ScriptのデプロイURLを設定してください
             // 例: 'https://script.google.com/macros/s/AKfycby.../exec'
-            // New deployment URL (v9 - 2026/01/29)
-            apiUrl: 'https://script.google.com/macros/s/AKfycbx2ruIiBFf2t2eiGxQsU5fOCkzE7mLquJ-EGN_qCQmw5AEViUDp8vTkcpASiduGLCYwSA/exec',
-            formApiUrl: 'https://script.google.com/macros/s/AKfycbxhmGvzctdpfIpprOvF9Db_AND3Ov6KrFcuif1GyFHGiSbrtiFZcXVc4cjpjRL5rfpm8A/exec',
+            // New deployment URL
+            apiUrl: 'https://script.google.com/macros/s/AKfycbyU2fTnUPkKtUKevHhLZs1XQpW31cQHLFWGSwfC4NY7xXdyMBp8L4dRzyBXhx9LBwlz8g/exec',
+            formApiUrl: 'https://script.google.com/macros/s/AKfycbyU2fTnUPkKtUKevHhLZs1XQpW31cQHLFWGSwfC4NY7xXdyMBp8L4dRzyBXhx9LBwlz8g/exec',
             // 方式B: 6シート構成（ページ = シート）
             // section を指定することでシート内のセクションを取得
             sheets: {
@@ -729,8 +729,9 @@
             // /file/d/ID/view 形式または id=ID 形式からのID抽出
             const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
             if (match && match[1]) {
-                // サムネイル生成APIを使用（sz=w2000で高画質化）
-                return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w2000`;
+                // lh3.googleusercontent.com経由で配信（iOS Safari対応）
+                // drive.google.com/thumbnail はiOS SafariのITPでブロックされるため
+                return `https://lh3.googleusercontent.com/d/${match[1]}=w2000`;
             }
             return url;
         };
