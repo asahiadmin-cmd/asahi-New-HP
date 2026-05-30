@@ -615,6 +615,16 @@
             ]
         };
 
+        // 面接・研修施設（サテライト）のカード情報。スプシ連携対象は画像のみで、テキストはここで管理。
+        // order: 1〜2 が上段（左→右）、3〜5 が下段（左→右）。
+        const DEFAULT_FACILITY_INFO = [
+            { order: 1, key: "satellite_kadoma", title: "門真 施設", address: "〒571-0073 大阪府門真市北巣本町３１−２０ 2f", access: "アクセス情報を準備中です", link: "https://maps.google.com/?q=大阪府門真市北巣本町31-20" },
+            { order: 2, key: "satellite_yao",    title: "八尾 施設", address: "八尾施設の住所（準備中）",                          access: "アクセス情報を準備中です", link: "https://maps.google.com/?q=八尾市" },
+            { order: 3, key: "satellite_fuse",   title: "布施 施設", address: "東大阪市長堂2丁目10-24",                            access: "近鉄「布施駅」より徒歩5分", link: "https://maps.google.com/?q=東大阪市長堂2丁目10-24" },
+            { order: 4, key: "satellite_kano",   title: "加納 施設", address: "東大阪市加納1丁目10-8",                             access: "JR学研都市線「住道駅」徒歩15分", link: "https://maps.google.com/?q=東大阪市加納1丁目10-8" },
+            { order: 5, key: "satellite_wakae",  title: "若江 施設", address: "東大阪市若江本町4丁目2-4",                          access: "近鉄「若江岩田駅」より徒歩10分", link: "https://maps.google.com/?q=東大阪市若江本町4丁目2-4" }
+        ];
+
         // ==========================================
         // Icons (Manual SVG Definitions)
         // ==========================================
@@ -1468,7 +1478,7 @@
         };
 
         // --- Facilities Page ---
-        const FacilitiesPage = ({ facilitiesData = [] }) => {
+        const FacilitiesPage = ({ facilitiesData = [], facilityInfo = [] }) => {
             const [selectedImage, setSelectedImage] = useState(null);
             const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
@@ -1495,6 +1505,14 @@
                 })(),
                 satellite_kano: (() => {
                     const item = rawData.find(item => item.category === 'satellite_kano');
+                    return item ? getImageUrl(item, 'url_pc', 'url_mobile', 'url') : "";
+                })(),
+                satellite_kadoma: (() => {
+                    const item = rawData.find(item => item.category === 'satellite_kadoma');
+                    return item ? getImageUrl(item, 'url_pc', 'url_mobile', 'url') : "";
+                })(),
+                satellite_yao: (() => {
+                    const item = rawData.find(item => item.category === 'satellite_yao');
                     return item ? getImageUrl(item, 'url_pc', 'url_mobile', 'url') : "";
                 })(),
                 satellite: (() => {
@@ -1577,11 +1595,48 @@
                         </div>
                         <div className="max-w-5xl mx-auto">
                             <div className="flex items-center gap-3 mb-6"><div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600"><MapIcon size={20} /></div><h2 className="text-2xl font-black text-slate-800">面接・研修施設 <span className="text-sm font-medium text-slate-400 ml-2">Satellite Offices</span></h2></div>
-                            <div className="grid md:grid-cols-3 gap-6">
-                                <SatelliteCard title="若江 施設" address="東大阪市若江本町4丁目2-4" access="近鉄「若江岩田駅」より徒歩10分" link="https://maps.google.com/?q=東大阪市若江本町4丁目2-4" images={images} imageSrc={images.satellite_wakae || images.satellite} setSelectedImage={setSelectedImage} />
-                                <SatelliteCard title="布施 施設" address="東大阪市長堂2丁目10-24" access="近鉄「布施駅」より徒歩5分" link="https://maps.google.com/?q=東大阪市長堂2丁目10-24" images={images} imageSrc={images.satellite_fuse || images.satellite} setSelectedImage={setSelectedImage} />
-                                <SatelliteCard title="加納 施設" address="東大阪市加納1丁目10-8" access="JR学研都市線「住道駅」徒歩15分" link="https://maps.google.com/?q=東大阪市加納1丁目10-8" images={images} imageSrc={images.satellite_kano || images.satellite} setSelectedImage={setSelectedImage} />
-                            </div>
+                            {(() => {
+                                // スプシ「施設情報」セクションが入っていればそれを優先、無ければハードコードのデフォルト
+                                // id（例: kadoma）→ 画像キー（satellite_kadoma）にマップして画像連携を維持
+                                const sheetFacilities = (facilityInfo || [])
+                                    .filter(f => f && f.id && String(f.id).trim() !== '' && f.id !== 'honsha')
+                                    .map((f, i) => {
+                                        const rawOrder = f.order;
+                                        const parsedOrder = (rawOrder !== undefined && rawOrder !== '' && !isNaN(Number(rawOrder))) ? Number(rawOrder) : null;
+                                        const titleBase = (f.title || '').toString().trim();
+                                        const address = (f.address || '').toString().trim();
+                                        return {
+                                            order: parsedOrder !== null ? parsedOrder : (i + 1),
+                                            key: `satellite_${f.id}`,
+                                            title: titleBase ? `${titleBase} 施設` : '施設',
+                                            address: address,
+                                            access: (f.access || '').toString().trim(),
+                                            link: (f.mapUrl || '').toString().trim() || (address ? `https://maps.google.com/?q=${encodeURIComponent(address)}` : '#')
+                                        };
+                                    });
+                                const facilityList = sheetFacilities.length > 0
+                                    ? sheetFacilities.sort((a, b) => a.order - b.order)
+                                    : [...DEFAULT_FACILITY_INFO].sort((a, b) => a.order - b.order);
+                                // レイアウト: 先頭2件を上段、残りを下段
+                                const topRow = facilityList.slice(0, 2);
+                                const bottomRow = facilityList.slice(2);
+                                return (
+                                    <div className="grid grid-cols-1 md:grid-cols-6 gap-6">
+                                        <div className="hidden md:block md:col-span-1"></div>
+                                        {topRow.map(f => (
+                                            <div key={f.key} className="md:col-span-2">
+                                                <SatelliteCard title={f.title} address={f.address} access={f.access} link={f.link} images={images} imageSrc={images[f.key] || images.satellite} setSelectedImage={setSelectedImage} />
+                                            </div>
+                                        ))}
+                                        <div className="hidden md:block md:col-span-1"></div>
+                                        {bottomRow.map(f => (
+                                            <div key={f.key} className="md:col-span-2">
+                                                <SatelliteCard title={f.title} address={f.address} access={f.access} link={f.link} images={images} imageSrc={images[f.key] || images.satellite} setSelectedImage={setSelectedImage} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                );
+                            })()}
                         </div>
                     </div>
                 </div>
@@ -2100,6 +2155,7 @@
             const [staffData, setStaffData] = useState(DEFAULT_DATA.staff);
             const [historyData, setHistoryData] = useState(DEFAULT_DATA.history);
             const [facilitiesData, setFacilitiesData] = useState(DEFAULT_DATA.facilities);
+            const [facilityInfo, setFacilityInfo] = useState([]);
             const [companyInfo, setCompanyInfo] = useState(DEFAULT_DATA.companyInfo);
             const [recruitCards, setRecruitCards] = useState(DEFAULT_DATA.recruitCards);
             const [recruitFulltime, setRecruitFulltime] = useState([]);
@@ -2140,7 +2196,8 @@
                     if (batchData['事業所一覧']) {
                         const facilities = batchData['事業所一覧'];
                         if (facilities['画像一覧']?.length > 0) setFacilitiesData(facilities['画像一覧']);
-                        // 施設情報やページテキストがあればここに追加
+                        if (facilities['施設情報']?.length > 0) setFacilityInfo(facilities['施設情報']);
+                        // ページテキストがあればここに追加
                     }
 
                     // 求人データ
@@ -2327,7 +2384,7 @@
                     case 'company': return <CompanyPage companyInfo={companyInfo} historyData={historyData} />;
                     case 'staff': return <StaffPage staffData={staffData} />;
                     case 'contact': return <ContactPage pageSettings={pageSettings} navigateToRecruit={navigateToRecruit} />;
-                    case 'facilities': return <FacilitiesPage facilitiesData={facilitiesData} />;
+                    case 'facilities': return <FacilitiesPage facilitiesData={facilitiesData} facilityInfo={facilityInfo} />;
                     default: return (
                         <>
                             <header id="top" className="relative pt-36 pb-12 overflow-hidden">
