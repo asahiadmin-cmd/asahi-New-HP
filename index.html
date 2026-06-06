@@ -828,6 +828,15 @@
             </svg>
         );
 
+        // LINE icon (Official LINE brand logo)
+        const LineIcon = ({ size = 24 }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none">
+                <rect width="24" height="24" rx="6" fill="#06C755" />
+                <path d="M19.5 10.5c0-3.59-3.36-6.5-7.5-6.5S4.5 6.91 4.5 10.5c0 3.21 2.67 5.9 6.28 6.41.24.05.57.16.66.37.07.19.05.48.02.67l-.11.64c-.03.19-.15.73.6.4.75-.34 4.07-2.55 5.55-4.36C18.74 13.21 19.5 11.93 19.5 10.5z" fill="white" />
+                <path d="M9.08 8.95H8.36c-.1 0-.19.08-.19.19v3.05c0 .1.09.19.19.19h.72c.1 0 .19-.09.19-.19V9.14c0-.11-.09-.19-.19-.19zm6.03 0h-.72c-.1 0-.19.08-.19.19v1.81l-2.05-1.91a.19.19 0 00-.14-.09h-.72c-.1 0-.19.08-.19.19v3.05c0 .1.09.19.19.19h.72c.1 0 .19-.09.19-.19v-1.81l2.05 1.93c.04.03.08.06.14.06h.72c.1 0 .19-.09.19-.19V9.14c0-.11-.09-.19-.19-.19zm-4.66 2.53h-1.3V9.14c0-.11-.09-.19-.19-.19h-.72c-.1 0-.19.08-.19.19v3.05c0 .05.02.1.05.13.04.04.08.06.14.06h2.21c.1 0 .19-.09.19-.19v-.52c0-.1-.09-.19-.19-.19zm6.48-1.82c.1 0 .19-.09.19-.19v-.33c0-.1-.09-.19-.19-.19h-2.21c-.05 0-.1.02-.14.06a.18.18 0 00-.05.13v3.05c0 .05.02.1.05.13.04.04.08.06.14.06h2.21c.1 0 .19-.09.19-.19v-.52c0-.1-.09-.19-.19-.19h-1.3v-.43h1.3c.1 0 .19-.09.19-.19v-.52c0-.1-.09-.19-.19-.19h-1.3v-.43h1.3z" fill="#06C755" />
+            </svg>
+        );
+
         const GlobalBackground = () => (
             <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none bg-[#F5F7FA]">
                 <div className="absolute inset-0 bg-gradient-to-b from-orange-50/50 via-white to-blue-50/30"></div>
@@ -1848,12 +1857,16 @@
                             </p>
                             
                             <p className="text-sm text-slate-500 font-medium leading-relaxed mt-4">
-                                <span className="inline-flex items-center">
+                                <span className="inline-flex items-center flex-wrap">
                                     <span className="text-base font-bold mx-1 cursor-pointer underline decoration-orange-300 decoration-2 underline-offset-4 hover:decoration-orange-500 transition-all inline-flex items-center gap-1" onClick={handleScrollToForm}>
-                                        <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-orange-600 inline-block">応募フォームはページ下記</span>
+                                        <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-orange-600 inline-block">ページ下記の応募フォーム</span>
                                         <ChevronDown size={14} className="text-orange-500 animate-bounce" />
                                     </span>
-                                    <span className="inline-block">にあります。</span>
+                                    <span className="inline-block">または</span>
+                                    <a href="https://lin.ee/6CCSe0V" target="_blank" rel="noopener noreferrer" className="text-base font-bold mx-1 cursor-pointer underline decoration-orange-300 decoration-2 underline-offset-4 hover:decoration-orange-500 transition-all inline-flex items-center gap-1">
+                                        <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-orange-600 inline-block">LINEから</span>
+                                    </a>
+                                    <span className="inline-block">応募してください。</span>
                                 </span>
                                 <br className="md:hidden" />
                                 <span className="inline-block">お電話でもフォームからでも</span>
@@ -2707,13 +2720,15 @@
                                     <a href="https://www.instagram.com/lifesupport__asahi?igsh=a3ViYjRnZW9haDA0" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center hover:scale-110 transition-transform"><IconGradients /><InstagramGradient size={22} /></a>
                                     <a href="https://www.tiktok.com/@lifesupportasahi?_r=1&_t=ZS-933eSshEnRv" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center hover:scale-110 transition-transform"><TikTokGlitch size={20} /></a>
                                     <a href="https://youtube.com/channel/UCGCe56h_8FMtivkiG5aZqhQ?si=5-nnYr9SsupOtLn0" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center hover:scale-110 transition-transform"><YoutubeButton size={16} /></a>
+                                    <a href="https://lin.ee/6CCSe0V" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center hover:scale-110 transition-transform"><LineIcon size={22} /></a>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2 md:gap-3">
-                                <div className="flex lg:hidden items-center gap-2">
-                                    <a href="https://www.instagram.com/lifesupport__asahi?igsh=a3ViYjRnZW9haDA0" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center"><IconGradients /><InstagramGradient size={20} /></a>
-                                    <a href="https://www.tiktok.com/@lifesupportasahi?_r=1&_t=ZS-933eSshEnRv" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center"><TikTokGlitch size={18} /></a>
-                                    <a href="https://youtube.com/channel/UCGCe56h_8FMtivkiG5aZqhQ?si=5-nnYr9SsupOtLn0" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center"><YoutubeButton size={14} /></a>
+                                <div className="flex lg:hidden items-center gap-1.5">
+                                    <a href="https://www.instagram.com/lifesupport__asahi?igsh=a3ViYjRnZW9haDA0" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center"><IconGradients /><InstagramGradient size={17} /></a>
+                                    <a href="https://www.tiktok.com/@lifesupportasahi?_r=1&_t=ZS-933eSshEnRv" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center"><TikTokGlitch size={15} /></a>
+                                    <a href="https://youtube.com/channel/UCGCe56h_8FMtivkiG5aZqhQ?si=5-nnYr9SsupOtLn0" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center"><YoutubeButton size={11} /></a>
+                                    <a href="https://lin.ee/6CCSe0V" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center"><LineIcon size={17} /></a>
                                 </div>
                                 <button onClick={() => navigateToRecruit(null)} className="hidden lg:block rounded-full px-6 py-2.5 text-xs font-bold shadow-lg hover:scale-105 active:scale-95 transition-all bg-orange-500 text-white hover:bg-orange-600 whitespace-nowrap">求人に応募する</button><button className="lg:hidden p-2 text-slate-900" onClick={() => setIsMenuOpen(!isMenuOpen)}>{isMenuOpen ? <X size={28} /> : <Menu size={28} />}</button></div>
                         </div>
