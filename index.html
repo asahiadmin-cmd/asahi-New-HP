@@ -837,6 +837,14 @@
             </svg>
         );
 
+        // LINE icon White bubble for circular buttons
+        const LineIconWhite = ({ size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
+                <path d="M19.5 10.5c0-3.59-3.36-6.5-7.5-6.5S4.5 6.91 4.5 10.5c0 3.21 2.67 5.9 6.28 6.41.24.05.57.16.66.37.07.19.05.48.02.67l-.11.64c-.03.19-.15.73.6.4.75-.34 4.07-2.55 5.55-4.36C18.74 13.21 19.5 11.93 19.5 10.5z" fill="currentColor" />
+                <path d="M9.08 8.95H8.36c-.1 0-.19.08-.19.19v3.05c0 .1.09.19.19.19h.72c.1 0 .19-.09.19-.19V9.14c0-.11-.09-.19-.19-.19zm6.03 0h-.72c-.1 0-.19.08-.19.19v1.81l-2.05-1.91a.19.19 0 00-.14-.09h-.72c-.1 0-.19.08-.19.19v3.05c0 .1.09.19.19.19h.72c.1 0 .19-.09.19-.19v-1.81l2.05 1.93c.04.03.08.06.14.06h.72c.1 0 .19-.09.19-.19V9.14c0-.11-.09-.19-.19-.19zm-4.66 2.53h-1.3V9.14c0-.11-.09-.19-.19-.19h-.72c-.1 0-.19.08-.19.19v3.05c0 .05.02.1.05.13.04.04.08.06.14.06h2.21c.1 0 .19-.09.19-.19v-.52c0-.1-.09-.19-.19-.19zm6.48-1.82c.1 0 .19-.09.19-.19v-.33c0-.1-.09-.19-.19-.19h-2.21c-.05 0-.1.02-.14.06a.18.18 0 00-.05.13v3.05c0 .05.02.1.05.13.04.04.08.06.14.06h2.21c.1 0 .19-.09.19-.19v-.52c0-.1-.09-.19-.19-.19h-1.3v-.43h1.3c.1 0 .19-.09.19-.19v-.52c0-.1-.09-.19-.19-.19h-1.3v-.43h1.3z" fill="#06C755" />
+            </svg>
+        );
+
         const GlobalBackground = () => (
             <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none bg-[#F5F7FA]">
                 <div className="absolute inset-0 bg-gradient-to-b from-orange-50/50 via-white to-blue-50/30"></div>
@@ -2671,25 +2679,33 @@
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    {/* 電話相談 & 面談応募 CTA */}
-                                                    <div className="flex flex-col gap-3">
-                                                        <a href="tel:06-6746-7800" className="flex-1 bg-white/90 backdrop-blur-sm rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-white/50 p-5 flex items-center gap-4 group hover:shadow-lg hover:border-orange-200 transition-all cursor-pointer">
-                                                            <div className="shrink-0 w-12 h-12 rounded-full bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-200"><PhoneCall size={22} className="text-white" /></div>
+                                                    {/* 電話相談 & LINE応募 & 面談応募 CTA */}
+                                                    <div className="flex flex-col gap-2 xl:gap-3">
+                                                        <a href="tel:06-6746-7800" className="flex-1 bg-white/90 backdrop-blur-sm rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-white/50 p-3 xl:p-4 flex items-center gap-3 xl:gap-4 group hover:shadow-lg hover:border-orange-200 transition-all cursor-pointer">
+                                                            <div className="shrink-0 w-10 h-10 xl:w-12 xl:h-12 rounded-full bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-200"><PhoneCall size={20} className="text-white" /></div>
                                                             <div className="flex-1 min-w-0">
-                                                                <p className="text-[10px] font-bold text-slate-400 mb-0.5">迷ったらとりあえず電話！</p>
-                                                                <p className="text-lg font-black text-slate-800 group-hover:text-orange-600 transition-colors">電話で相談する</p>
+                                                                <p className="text-[9px] xl:text-[10px] font-bold text-slate-400 mb-0.5">迷ったらとりあえず電話！</p>
+                                                                <p className="text-sm xl:text-lg font-black text-slate-800 group-hover:text-orange-600 transition-colors">電話で相談する</p>
                                                             </div>
-                                                            <ArrowRight size={20} className="text-slate-300 group-hover:text-orange-500 transition-colors shrink-0" />
+                                                            <ArrowRight size={18} className="text-slate-300 group-hover:text-orange-500 transition-colors shrink-0" />
                                                         </a>
-                                                        <button onClick={() => navigateToRecruit(null)} className="flex-1 bg-slate-800 rounded-2xl shadow-lg shadow-slate-300 p-5 flex items-center gap-4 group hover:bg-slate-700 transition-all cursor-pointer text-left">
-                                                            <div className="shrink-0 w-12 h-12 rounded-full bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-900/30">
-                                                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                                                        <a href="https://lin.ee/6CCSe0V" target="_blank" rel="noopener noreferrer" className="flex-1 bg-white/90 backdrop-blur-sm rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.04)] border border-[#06C755]/20 p-3 xl:p-4 flex items-center gap-3 xl:gap-4 group hover:shadow-lg hover:border-[#06C755]/50 transition-all cursor-pointer">
+                                                            <div className="shrink-0 w-10 h-10 xl:w-12 xl:h-12 rounded-full bg-[#06C755] flex items-center justify-center shadow-lg shadow-[#06C755]/30"><LineIconWhite size={30} className="text-white" /></div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-[9px] xl:text-[10px] font-bold text-[#06C755]/70 mb-0.5">LINEからの応募も可能！</p>
+                                                                <p className="text-sm xl:text-lg font-black text-slate-800 group-hover:text-[#06C755] transition-colors">LINEで応募する</p>
+                                                            </div>
+                                                            <ArrowRight size={18} className="text-slate-300 group-hover:text-[#06C755] transition-colors shrink-0" />
+                                                        </a>
+                                                        <button onClick={() => navigateToRecruit(null)} className="flex-1 bg-slate-800 rounded-2xl shadow-lg shadow-slate-300 p-3 xl:p-4 flex items-center gap-3 xl:gap-4 group hover:bg-slate-700 transition-all cursor-pointer text-left">
+                                                            <div className="shrink-0 w-10 h-10 xl:w-12 xl:h-12 rounded-full bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-900/30">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                                                             </div>
                                                             <div className="flex-1 min-w-0">
-                                                                <p className="text-[10px] font-bold text-slate-400 mb-0.5">まずはエリアの相談だけでもOK!</p>
-                                                                <p className="text-lg font-black text-white">面談に<span className="text-orange-400">応募する</span></p>
+                                                                <p className="text-[9px] xl:text-[10px] font-bold text-slate-400 mb-0.5">まずはエリアの相談だけでもOK!</p>
+                                                                <p className="text-sm xl:text-lg font-black text-white">面談に<span className="text-orange-400">応募する</span></p>
                                                             </div>
-                                                            <ArrowRight size={20} className="text-white/50 group-hover:text-white transition-colors shrink-0" />
+                                                            <ArrowRight size={18} className="text-white/50 group-hover:text-white transition-colors shrink-0" />
                                                         </button>
                                                     </div>
                                                 </div>
