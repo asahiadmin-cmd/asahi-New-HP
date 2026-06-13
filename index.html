@@ -1898,7 +1898,7 @@
                     { time: "07:00〜08:00", label: "60分サービス 早朝", amount: "2,525円", type: "night" },
                     { time: "08:30〜09:00", label: "30分サービス", amount: "1,450円" },
                     { time: "09:30〜10:30", label: "60分サービス", amount: "2,200円" },
-                    { time: "10:30〜14:00", label: "自由時間", amount: "ジムで筋トレ → 会社でタンパク質補給（笑）", type: "free" },
+                    { time: "10:30〜14:00", label: "自由時間", amount: "会社でご飯・仮眠", type: "free" },
                     { time: "14:00〜15:30", label: "90分サービス", amount: "3,300円" },
                     { time: "16:00〜16:30", label: "30分サービス", amount: "1,450円" },
                     { time: "18:00〜18:30", label: "30分サービス 夜間", amount: "1,612円", type: "night" },
@@ -2168,10 +2168,24 @@
                                 right: 0;
                             }
                             .simulation-card .schedule-row {
-                                grid-template-columns: 1fr;
-                                gap: 4px;
+                                grid-template-columns: 1fr auto;
+                                column-gap: 12px;
+                                row-gap: 2px;
+                                align-items: center;
+                            }
+                            .simulation-card .schedule-row span {
+                                grid-column: 1;
+                                grid-row: 1;
+                            }
+                            .simulation-card .schedule-row b {
+                                grid-column: 1;
+                                grid-row: 2;
                             }
                             .simulation-card .schedule-row strong {
+                                grid-column: 2;
+                                grid-row: 1 / span 2;
+                                align-self: center;
+                                text-align: right;
                                 font-size: 20px;
                             }
                             .sim-tab {
@@ -2530,17 +2544,36 @@
                             }
                             .reward-row {
                                 grid-template-columns: 1fr;
+                                gap: 0;
                                 margin-bottom: 18px;
+                                background: rgba(255, 255, 255, 0.96);
+                                border: 1px solid rgba(220, 226, 235, 0.9);
+                                border-radius: 14px;
+                                box-shadow: 0 10px 26px rgba(22, 35, 62, 0.1);
+                                overflow: hidden;
                             }
                             .time-box,
                             .price-box {
-                                min-height: 76px;
+                                min-height: auto;
+                                background: transparent;
+                                border: 0;
+                                border-radius: 0;
+                                box-shadow: none;
                             }
                             .time-box {
                                 flex-direction: row;
-                                min-height: 60px;
+                                min-height: auto;
+                                padding: 14px;
                                 font-size: 18px;
                                 gap: 10px;
+                                background: rgba(247, 249, 252, 0.9);
+                                border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+                            }
+                            .price-box {
+                                padding: 16px 14px;
+                            }
+                            .price-box.day-box {
+                                border-bottom: 1px solid rgba(15, 23, 42, 0.08);
                             }
                             .price-box::before {
                                 display: block;
@@ -2858,27 +2891,38 @@
                             <h1 className="text-3xl font-black tracking-tight mb-4"><GradientText>求人情報一覧</GradientText></h1>
                             
                             <p className="text-sm text-slate-500 font-medium leading-relaxed mb-2">
-                                あなたの<span className="text-base font-bold">
+                                <span className="inline-block">あなたの</span>
+                                <span className="inline-block text-base font-bold">
                                     <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-orange-600">ライフスタイルに合わせた働き方</span>
-                                </span>をご用意しています。
+                                </span>
+                                <span className="inline-block">をご用意しています。</span>
                             </p>
-                            
+
                             <p className="text-sm text-slate-500 font-medium leading-relaxed mb-2">
-                                日中お忙しい方にもご利用いただけるよう、
-                                幅広い時間帯で<span className="text-base font-bold">
+                                <span className="inline-block">日中お忙しい方にも</span>
+                                <span className="inline-block">ご利用いただけるよう、</span>
+                                <span className="inline-block">幅広い時間帯で</span>
+                                <span className="inline-block text-base font-bold">
                                     <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-orange-600">面接や面談</span>
-                                </span>の対応をしております。
+                                </span>
+                                <span className="inline-block">の対応をしております。</span>
                             </p>
                             
                             <p className="text-sm text-slate-500 font-medium leading-relaxed mt-4">
                                 <span className="text-base font-bold cursor-pointer underline decoration-orange-300 decoration-2 underline-offset-4 hover:decoration-orange-500 transition-all inline-flex items-center gap-1" onClick={handleScrollToForm}>
                                     <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-orange-600">ページ下記の応募フォーム</span>
                                     <ChevronDown size={14} className="text-orange-500 animate-bounce" />
-                                </span>または<a href="https://lin.ee/6CCSe0V" target="_blank" rel="noopener noreferrer" className="text-base font-bold cursor-pointer underline decoration-orange-300 decoration-2 underline-offset-4 hover:decoration-orange-500 transition-all inline-flex items-center gap-1">
+                                </span>
+                                <span className="inline-block">または</span>
+                                <a href="https://lin.ee/6CCSe0V" target="_blank" rel="noopener noreferrer" className="text-base font-bold cursor-pointer underline decoration-orange-300 decoration-2 underline-offset-4 hover:decoration-orange-500 transition-all inline-flex items-center gap-1">
                                     <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-orange-600">LINEから</span>
-                                </a>応募してください。
+                                </a>
+                                <span className="inline-block">応募してください。</span>
                                 <br />
-                                お電話でもフォームからでもお気軽にお問い合わせください。
+                                <span className="inline-block">お電話でも</span>
+                                <span className="inline-block">フォームからでも</span>
+                                <span className="inline-block">お気軽に</span>
+                                <span className="inline-block">お問い合わせください。</span>
                             </p>
                         </div>
                     </div>
@@ -3170,7 +3214,7 @@
             const [isMenuOpen, setIsMenuOpen] = useState(false);
             const [isSocialMenuOpen, setIsSocialMenuOpen] = useState(false);
             const [scrolled, setScrolled] = useState(false);
-            const [view, setView] = useState('home');
+            const [view, setView] = useState('recruit');
             const [recruitScrollTarget, setRecruitScrollTarget] = useState(null);
 
             // スプレッドシートデータの状態管理
@@ -3759,7 +3803,6 @@
                                     <button type="button" onClick={toggleSocialMenu} aria-label={isSocialMenuOpen ? 'SNSメニューを閉じる' : 'SNSメニューを開く'} aria-expanded={isSocialMenuOpen} className="w-6 h-7 flex items-center justify-center"><IconGradients /><InstagramGradient size={17} /></button>
                                     <button type="button" onClick={toggleSocialMenu} aria-label={isSocialMenuOpen ? 'SNSメニューを閉じる' : 'SNSメニューを開く'} aria-expanded={isSocialMenuOpen} className="w-6 h-7 flex items-center justify-center"><TikTokGlitch size={15} /></button>
                                     <button type="button" onClick={toggleSocialMenu} aria-label={isSocialMenuOpen ? 'SNSメニューを閉じる' : 'SNSメニューを開く'} aria-expanded={isSocialMenuOpen} className="w-7 h-7 flex items-center justify-center"><YoutubeButton size={11} /></button>
-                                    <button type="button" onClick={toggleSocialMenu} aria-label={isSocialMenuOpen ? 'SNSメニューを閉じる' : 'SNSメニューを開く'} aria-expanded={isSocialMenuOpen} className="w-6 h-7 flex items-center justify-center"><LineIcon size={17} /></button>
                                 </div>
                                 <button onClick={() => navigateToRecruit(null)} className="hidden lg:block rounded-full px-6 py-2.5 text-xs font-bold shadow-lg hover:scale-105 active:scale-95 transition-all bg-orange-500 text-white hover:bg-orange-600 whitespace-nowrap">求人に応募する</button><button type="button" className="lg:hidden p-2 text-slate-900" onClick={toggleMainMenu} aria-label={isMenuOpen ? 'メインメニューを閉じる' : 'メインメニューを開く'} aria-expanded={isMenuOpen}>{isMenuOpen ? <X size={28} /> : <Menu size={28} />}</button></div>
                         </div>
