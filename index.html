@@ -1855,8 +1855,8 @@
 
         // --- Salary Simulation ---
         const SIMULATION_TABS = [
-            { id: "housewife", label: "主婦さん", icon: "Home" },
             { id: "doublework", label: "Wワーク", icon: "Briefcase" },
+            { id: "housewife", label: "主婦さん", icon: "Home" },
             { id: "social", label: "社保加入", icon: "Shield" },
             { id: "morning", label: "早朝のみ", icon: "Sun" },
         ];
@@ -1923,7 +1923,7 @@
         };
 
         const SalarySimulation = () => {
-            const [activeTab, setActiveTab] = useState("housewife");
+            const [activeTab, setActiveTab] = useState("doublework");
             const panel = SIMULATION_PANELS[activeTab];
 
             return (
@@ -1944,11 +1944,12 @@
                             letter-spacing: .08em;
                         }
                         .simulation-head h2 {
+                            display: inline-block;
                             margin: 8px 0 0;
                             font-size: clamp(20px, 2.4vw, 26px);
                             line-height: 1.16;
                             letter-spacing: -0.04em;
-                            background: linear-gradient(90deg, #f15a24 0%, #b34a35 38%, #20285a 66%, #111832 100%);
+                            background: linear-gradient(90deg, #ea580c 0%, #312e81 50%, #0f172a 100%);
                             -webkit-background-clip: text;
                             background-clip: text;
                             color: transparent;
@@ -2001,9 +2002,9 @@
                         }
                         .sim-tab.active {
                             color: #fff;
-                            background: #ff6b1a;
+                            background: #0b162d;
                             border-color: transparent;
-                            box-shadow: 0 12px 28px rgba(255,107,26,.28);
+                            box-shadow: 0 12px 28px rgba(11,22,45,.24);
                             transform: translateY(-1px);
                         }
                         .sim-tab.active svg {
@@ -2057,7 +2058,7 @@
                         .simulation-card .monthly-box strong {
                             display: block;
                             margin: 4px 0;
-                            color: #ff5a14;
+                            color: #0b162d;
                             font-size: clamp(34px, 4vw, 46px);
                             line-height: 1;
                             letter-spacing: -0.05em;
@@ -2087,9 +2088,11 @@
                             font-size: 17px;
                             white-space: nowrap;
                         }
-                        .simulation-card .schedule-row.night strong,
-                        .simulation-card .total-row strong {
+                        .simulation-card .schedule-row.night strong {
                             color: #ff5a14;
+                        }
+                        .simulation-card .total-row strong {
+                            color: #0b162d;
                         }
                         .simulation-card .free-time {
                             background: linear-gradient(90deg, rgba(255,107,26,.04), rgba(11,22,45,.03));
@@ -2178,7 +2181,6 @@
                     `}</style>
 
                     <div className="simulation-head">
-                        <span className="eyebrow">Work Style Simulation</span>
                         <h2 id="simulation-title">働き方・給与シミュレーション</h2>
                         <p><strong>ライフスタイル</strong>に合わせた働き方で、どれくらい収入になるかをイメージできます。</p>
                     </div>
@@ -2236,7 +2238,7 @@
 
         const REWARD_PRICE_DATA = {
             registered: [
-                { time: "30分", day: "1,350", dayDetail: "内訳：650円（基本給）+450円（処遇改善）+350円", night: "1,512", nightDetail: "内訳：812円（基本給）+450円（処遇改善）+350円" },
+                { time: "30分", day: "1,350", dayDetail: "内訳：650円（基本給）+350円（処遇改善）+350円", night: "1,512", nightDetail: "内訳：812円（基本給）+450円（処遇改善）+350円" },
                 { time: "45分", day: "1,825", dayDetail: "内訳：1,300円（基本給）+525円（処遇改善）", night: "2,150", nightDetail: "内訳：1,625円（基本給）+525円（処遇改善）" },
                 { time: "60分", day: "2,000", dayDetail: "内訳：1,300円（基本給）+700円（処遇改善）", night: "2,325", nightDetail: "内訳：1,625円（基本給）+700円（処遇改善）" },
                 { time: "90分", day: "3,000", dayDetail: "内訳：1,950円（基本給）+1,050円（処遇改善）", night: "3,487", nightDetail: "内訳：2,437円（基本給）+1,050円（処遇改善）" },
@@ -2249,12 +2251,21 @@
             ],
         };
 
-        const RewardPriceBox = ({ type, amount, detail }) => (
-            <div className={`price-box ${type}-box`}>
-                <div className="price-main">{amount}<small>円</small></div>
-                <div className="price-detail">{detail}</div>
-            </div>
-        );
+        const RewardPriceBox = ({ type, amount, detail }) => {
+            const allowanceStart = detail.indexOf('+');
+            const basePay = allowanceStart >= 0 ? detail.slice(0, allowanceStart) : detail;
+            const allowances = allowanceStart >= 0 ? detail.slice(allowanceStart) : '';
+
+            return (
+                <div className={`price-box ${type}-box`}>
+                    <div className="price-main">{amount}<small>円</small></div>
+                    <div className="price-detail">
+                        <span>{basePay}</span>
+                        {allowances && <span>{allowances}</span>}
+                    </div>
+                </div>
+            );
+        };
 
         const RewardTable = () => {
             const [activeType, setActiveType] = useState("registered");
@@ -2268,47 +2279,17 @@
                             color: #0b1733;
                         }
                         .reward-heading {
-                            display: flex;
-                            align-items: center;
-                            gap: 22px;
+                            text-align: center;
                             margin-bottom: 28px;
                         }
-                        .reward-icon {
-                            position: relative;
-                            width: 50px;
-                            height: 50px;
-                            border-radius: 50%;
-                            background: linear-gradient(135deg, #ff9f1c, #ff5a1f);
-                            color: #fff;
-                            display: grid;
-                            place-items: center;
-                            font-size: 26px;
-                            font-weight: 800;
-                            box-shadow: 0 10px 22px rgba(255, 106, 31, 0.28);
-                            flex-shrink: 0;
-                        }
-                        .reward-icon::after {
-                            content: "▦";
-                            position: absolute;
-                            right: -10px;
-                            bottom: -5px;
-                            width: 22px;
-                            height: 22px;
-                            border-radius: 6px;
-                            background: #ff7a2a;
-                            color: #fff;
-                            font-size: 14px;
-                            display: grid;
-                            place-items: center;
-                            box-shadow: 0 6px 12px rgba(255, 106, 31, 0.24);
-                        }
                         .reward-heading h2 {
+                            display: inline-block;
                             margin: 0;
                             font-size: clamp(20px, 2.4vw, 26px);
                             letter-spacing: -0.04em;
                             line-height: 1.16;
                             font-weight: 900;
-                            background: linear-gradient(90deg, #f15a24 0%, #b34a35 38%, #20285a 66%, #111832 100%);
+                            background: linear-gradient(90deg, #ea580c 0%, #312e81 50%, #0f172a 100%);
                             -webkit-background-clip: text;
                             background-clip: text;
                             color: transparent;
@@ -2318,6 +2299,13 @@
                             color: #42526e;
                             font-weight: 600;
                             font-size: 15px;
+                        }
+                        .reward-heading .reward-popular {
+                            margin-top: 2px;
+                        }
+                        .reward-heading .reward-popular strong {
+                            color: #ff5a1f;
+                            font-weight: 800;
                         }
                         .reward-card {
                             background: rgba(255, 255, 255, 0.88);
@@ -2367,9 +2355,9 @@
                         }
                         .tab-button.active {
                             color: #fff;
-                            background: #ff6b1a;
+                            background: #0b162d;
                             border-color: transparent;
-                            box-shadow: 0 12px 28px rgba(255,107,26,.28);
+                            box-shadow: 0 12px 28px rgba(11,22,45,.24);
                             transform: translateY(-1px);
                         }
                         .tab-button.active svg {
@@ -2408,22 +2396,26 @@
                             margin-bottom: 0;
                         }
                         .time-title {
+                            display: flex;
+                            align-items: flex-start;
+                            justify-content: center;
+                            gap: 4px;
                             text-align: center;
                             font-weight: 900;
                             font-size: clamp(10px, 1vw, 12px);
                             line-height: 1.4;
                             color: #0b376c;
                         }
-                        .time-title span {
+                        .time-title .time-symbol {
                             display: inline-block;
-                            margin-right: 4px;
                             font-size: clamp(13px, 1.4vw, 18px);
                             vertical-align: middle;
+                            flex-shrink: 0;
                         }
-                        .time-title.day span {
+                        .time-title.day .time-symbol {
                             color: #ff8a1f;
                         }
-                        .time-title.night span {
+                        .time-title.night .time-symbol {
                             color: #0d4b8f;
                         }
                         .time-box,
@@ -2462,9 +2454,9 @@
                             padding: 10px 8px;
                         }
                         .price-main {
-                            font-size: clamp(24px, 2.2vw, 30px);
+                            font-size: clamp(22px, 2vw, 27px);
                             line-height: 1;
-                            font-weight: 900;
+                            font-weight: 800;
                             letter-spacing: 0;
                         }
                         .price-main small {
@@ -2482,7 +2474,10 @@
                             font-size: clamp(9px, 0.85vw, 11px);
                             color: #0b1733;
                             font-weight: 800;
-                            line-height: 1.45;
+                            line-height: 1.4;
+                        }
+                        .price-detail span {
+                            display: block;
                         }
                         .reward-notes {
                             padding: 12px 20px 13px;
@@ -2558,10 +2553,11 @@
                                 content: "☀ 日中（6:00〜18:00）";
                             }
                             .price-box.night-box::before {
-                                content: "☾ 早朝・夜間（6:00〜8:00 / 18:00〜22:00）";
+                                content: "☾ 早朝・夜間（6:00〜8:00 /\\A 18:00〜22:00）";
+                                white-space: pre-line;
                             }
                             .price-main {
-                                font-size: 32px;
+                                font-size: 28px;
                             }
                             .price-detail {
                                 font-size: 12px;
@@ -2570,11 +2566,9 @@
                     `}</style>
 
                     <div className="reward-heading">
-                        <div className="reward-icon"><span>¥</span></div>
-                        <div>
-                            <h2>サービス報酬</h2>
-                            <p>あなたの頑張りをしっかり評価する報酬体系です。</p>
-                        </div>
+                        <h2>サービス報酬</h2>
+                        <p>あなたの頑張りをしっかり評価する報酬体系です。</p>
+                        <p className="reward-popular"><strong>30分</strong>のサービスが人気です！</p>
                     </div>
 
                     <div className="reward-card">
@@ -2596,8 +2590,8 @@
                         <div className="reward-table">
                             <div className="reward-table-head">
                                 <div></div>
-                                <div className="time-title day"><span>☀</span>日中（6:00〜18:00）</div>
-                                <div className="time-title night"><span>☾</span>早朝・夜間（6:00〜8:00 / 18:00〜22:00）</div>
+                                <div className="time-title day"><span className="time-symbol">☀</span><span>日中（6:00〜18:00）</span></div>
+                                <div className="time-title night"><span className="time-symbol">☾</span><span>早朝・夜間（6:00〜8:00 /<br />18:00〜22:00）</span></div>
                             </div>
                             <div>
                                 {rows.map((item, i) => (
@@ -3174,6 +3168,7 @@
         // --- Main App Component ---
         const App = () => {
             const [isMenuOpen, setIsMenuOpen] = useState(false);
+            const [isSocialMenuOpen, setIsSocialMenuOpen] = useState(false);
             const [scrolled, setScrolled] = useState(false);
             const [view, setView] = useState('home');
             const [recruitScrollTarget, setRecruitScrollTarget] = useState(null);
@@ -3336,6 +3331,7 @@
             const navigateTo = (targetView) => {
                 setView(targetView);
                 setIsMenuOpen(false);
+                setIsSocialMenuOpen(false);
                 window.scrollTo(0, 0);
             };
 
@@ -3343,7 +3339,18 @@
                 setView('recruit');
                 setRecruitScrollTarget(targetId);
                 setIsMenuOpen(false);
+                setIsSocialMenuOpen(false);
                 window.scrollTo(0, 0);
+            };
+
+            const toggleSocialMenu = () => {
+                setIsSocialMenuOpen((isOpen) => !isOpen);
+                setIsMenuOpen(false);
+            };
+
+            const toggleMainMenu = () => {
+                setIsMenuOpen((isOpen) => !isOpen);
+                setIsSocialMenuOpen(false);
             };
 
             // 統計データからカテゴリ別の値を取得するヘルパー関数
@@ -3748,15 +3755,24 @@
                                 </div>
                             </div>
                             <div className="flex items-center gap-2 md:gap-3">
-                                <div className="flex lg:hidden items-center gap-1.5">
-                                    <a href="https://www.instagram.com/lifesupport__asahi?igsh=a3ViYjRnZW9haDA0" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center"><IconGradients /><InstagramGradient size={17} /></a>
-                                    <a href="https://www.tiktok.com/@lifesupportasahi?_r=1&_t=ZS-933eSshEnRv" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center"><TikTokGlitch size={15} /></a>
-                                    <a href="https://youtube.com/channel/UCGCe56h_8FMtivkiG5aZqhQ?si=5-nnYr9SsupOtLn0" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center"><YoutubeButton size={11} /></a>
-                                    <a href="https://lin.ee/6CCSe0V" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center"><LineIcon size={17} /></a>
+                                <div className={`flex lg:hidden items-center gap-1 rounded-lg px-1 py-1 transition-colors ${isSocialMenuOpen ? 'bg-slate-100' : ''}`}>
+                                    <button type="button" onClick={toggleSocialMenu} aria-label={isSocialMenuOpen ? 'SNSメニューを閉じる' : 'SNSメニューを開く'} aria-expanded={isSocialMenuOpen} className="w-6 h-7 flex items-center justify-center"><IconGradients /><InstagramGradient size={17} /></button>
+                                    <button type="button" onClick={toggleSocialMenu} aria-label={isSocialMenuOpen ? 'SNSメニューを閉じる' : 'SNSメニューを開く'} aria-expanded={isSocialMenuOpen} className="w-6 h-7 flex items-center justify-center"><TikTokGlitch size={15} /></button>
+                                    <button type="button" onClick={toggleSocialMenu} aria-label={isSocialMenuOpen ? 'SNSメニューを閉じる' : 'SNSメニューを開く'} aria-expanded={isSocialMenuOpen} className="w-7 h-7 flex items-center justify-center"><YoutubeButton size={11} /></button>
+                                    <button type="button" onClick={toggleSocialMenu} aria-label={isSocialMenuOpen ? 'SNSメニューを閉じる' : 'SNSメニューを開く'} aria-expanded={isSocialMenuOpen} className="w-6 h-7 flex items-center justify-center"><LineIcon size={17} /></button>
                                 </div>
-                                <button onClick={() => navigateToRecruit(null)} className="hidden lg:block rounded-full px-6 py-2.5 text-xs font-bold shadow-lg hover:scale-105 active:scale-95 transition-all bg-orange-500 text-white hover:bg-orange-600 whitespace-nowrap">求人に応募する</button><button className="lg:hidden p-2 text-slate-900" onClick={() => setIsMenuOpen(!isMenuOpen)}>{isMenuOpen ? <X size={28} /> : <Menu size={28} />}</button></div>
+                                <button onClick={() => navigateToRecruit(null)} className="hidden lg:block rounded-full px-6 py-2.5 text-xs font-bold shadow-lg hover:scale-105 active:scale-95 transition-all bg-orange-500 text-white hover:bg-orange-600 whitespace-nowrap">求人に応募する</button><button type="button" className="lg:hidden p-2 text-slate-900" onClick={toggleMainMenu} aria-label={isMenuOpen ? 'メインメニューを閉じる' : 'メインメニューを開く'} aria-expanded={isMenuOpen}>{isMenuOpen ? <X size={28} /> : <Menu size={28} />}</button></div>
                         </div>
-                        {isMenuOpen && (<div className="absolute top-full left-0 w-full bg-white shadow-xl lg:hidden flex flex-col border-t border-slate-100 animate-in slide-in-from-top-5 duration-200"><button onClick={() => navigateTo('home')} className="text-left font-bold text-slate-600 py-5 px-8 border-b border-slate-100 active:bg-slate-50">トップページ</button><button onClick={() => navigateTo('company')} className="text-left font-bold text-slate-600 py-5 px-8 border-b border-slate-100 active:bg-slate-50">会社概要</button><button onClick={() => navigateTo('staff')} className="text-left font-bold text-slate-600 py-5 px-8 border-b border-slate-100 active:bg-slate-50">社員紹介</button><button onClick={() => navigateTo('facilities')} className="text-left font-bold text-slate-600 py-5 px-8 border-b border-slate-100 active:bg-slate-50">事業所一覧</button><button onClick={() => navigateToRecruit(null)} className="text-left font-bold text-white bg-orange-500 py-5 px-8 active:bg-orange-600 flex justify-between items-center">求人一覧を見る <ArrowRight size={16} /></button><button onClick={() => navigateTo('contact')} className="text-left font-bold text-slate-600 py-5 px-8 border-b border-slate-100 active:bg-slate-50">お問い合わせ</button></div>)}
+                        {isSocialMenuOpen && (
+                            <div className="absolute top-full left-0 w-full bg-white shadow-xl lg:hidden flex flex-col border-t border-slate-100 animate-in slide-in-from-top-5 duration-200">
+                                <div className="px-8 py-3 text-xs font-bold text-slate-400 bg-slate-50 border-b border-slate-100">公式SNS・採用LINE</div>
+                                <a href="https://www.instagram.com/lifesupport__asahi?igsh=a3ViYjRnZW9haDA0" target="_blank" rel="noopener noreferrer" onClick={() => setIsSocialMenuOpen(false)} className="flex items-center justify-between gap-4 py-4 px-8 border-b border-slate-100 active:bg-slate-50"><span className="flex items-center gap-4 font-bold text-slate-700"><InstagramGradient size={22} />公式Instagram</span><ArrowRight size={16} className="text-slate-400" /></a>
+                                <a href="https://www.tiktok.com/@lifesupportasahi?_r=1&_t=ZS-933eSshEnRv" target="_blank" rel="noopener noreferrer" onClick={() => setIsSocialMenuOpen(false)} className="flex items-center justify-between gap-4 py-4 px-8 border-b border-slate-100 active:bg-slate-50"><span className="flex items-center gap-4 font-bold text-slate-700"><TikTokGlitch size={20} />公式TikTok</span><ArrowRight size={16} className="text-slate-400" /></a>
+                                <a href="https://youtube.com/channel/UCGCe56h_8FMtivkiG5aZqhQ?si=5-nnYr9SsupOtLn0" target="_blank" rel="noopener noreferrer" onClick={() => setIsSocialMenuOpen(false)} className="flex items-center justify-between gap-4 py-4 px-8 border-b border-slate-100 active:bg-slate-50"><span className="flex items-center gap-4 font-bold text-slate-700"><YoutubeButton size={16} />公式YouTube</span><ArrowRight size={16} className="text-slate-400" /></a>
+                                <a href="https://lin.ee/6CCSe0V" target="_blank" rel="noopener noreferrer" onClick={() => setIsSocialMenuOpen(false)} className="flex items-center justify-between gap-4 py-4 px-8 border-b border-slate-100 active:bg-slate-50"><span className="flex items-center gap-4 font-bold text-slate-700"><LineIcon size={22} />採用連絡LINE</span><ArrowRight size={16} className="text-slate-400" /></a>
+                            </div>
+                        )}
+                        {isMenuOpen && (<div className="absolute top-full left-0 w-full bg-white shadow-xl lg:hidden flex flex-col border-t border-slate-100 animate-in slide-in-from-top-5 duration-200"><button onClick={() => navigateTo('home')} className="text-left font-bold text-slate-600 py-5 px-8 border-b border-slate-100 active:bg-slate-50">トップページ</button><button onClick={() => navigateTo('company')} className="text-left font-bold text-slate-600 py-5 px-8 border-b border-slate-100 active:bg-slate-50">会社概要</button><button onClick={() => navigateTo('staff')} className="text-left font-bold text-slate-600 py-5 px-8 border-b border-slate-100 active:bg-slate-50">社員紹介</button><button onClick={() => navigateTo('facilities')} className="text-left font-bold text-slate-600 py-5 px-8 border-b border-slate-100 active:bg-slate-50">事業所一覧</button><button onClick={() => navigateToRecruit(null)} className="text-left font-bold text-slate-600 bg-white py-5 px-8 border-b border-slate-100 active:bg-slate-50 flex justify-between items-center">求人一覧を見る <ArrowRight size={16} /></button><button onClick={() => navigateTo('contact')} className="text-left font-bold text-slate-600 py-5 px-8 border-b border-slate-100 active:bg-slate-50">お問い合わせ</button></div>)}
                     </nav>
                     <main className="flex-grow">{renderCurrentView()}</main>
                     <FloatingPhoneButton />
