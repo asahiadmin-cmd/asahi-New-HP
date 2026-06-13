@@ -2096,10 +2096,12 @@
                         }
                         .simulation-card .free-time {
                             background: linear-gradient(90deg, rgba(255,107,26,.04), rgba(11,22,45,.03));
+                            grid-template-columns: 110px auto 1fr;
                         }
                         .simulation-card .free-time strong {
                             color: #0b162d;
                             white-space: normal;
+                            text-align: left;
                         }
                         .simulation-card .total-row {
                             background: rgba(248,250,252,.76);
@@ -2405,6 +2407,12 @@
                         }
                         .reward-row {
                             margin-bottom: 0;
+                            gap: 0;
+                            background: rgba(255, 255, 255, 0.94);
+                            border: 1px solid rgba(220, 226, 235, 0.9);
+                            border-radius: 12px;
+                            box-shadow: 0 6px 16px rgba(22, 35, 62, 0.08);
+                            overflow: hidden;
                         }
                         .reward-row:last-child {
                             margin-bottom: 0;
@@ -2435,13 +2443,19 @@
                         .time-box,
                         .price-box {
                             min-height: 100%;
-                            border-radius: 10px;
-                            background: rgba(255, 255, 255, 0.94);
-                            border: 1px solid rgba(220, 226, 235, 0.9);
-                            box-shadow: 0 6px 16px rgba(22, 35, 62, 0.08);
+                            border-radius: 0;
+                            background: transparent;
+                            border: 0;
+                            box-shadow: none;
                             display: flex;
                             align-items: center;
                             justify-content: center;
+                        }
+                        @media (min-width: 721px) {
+                            .reward-row .time-box,
+                            .reward-row .price-box.day-box {
+                                border-right: 1px solid rgba(15, 23, 42, 0.08);
+                            }
                         }
                         .time-box {
                             flex-direction: column;
@@ -2599,7 +2613,7 @@
                     `}</style>
 
                     <div className="reward-heading">
-                        <h2>サービス報酬</h2>
+                        <h2>サービス報酬一覧表</h2>
                         <p>あなたの頑張りをしっかり評価する報酬体系です。</p>
                         <p className="reward-popular"><strong>30分</strong>のサービスが人気です！</p>
                     </div>
@@ -2679,7 +2693,11 @@
                         }
                         .work-reward-grid .reward-heading,
                         .work-reward-grid .simulation-head {
-                            align-self: center;
+                            align-self: start;
+                        }
+                        .work-reward-grid .reward-heading h2,
+                        .work-reward-grid .simulation-head h2 {
+                            margin-top: 0;
                         }
                         .work-reward-grid .reward-card,
                         .work-reward-grid .simulation-panel {
@@ -2836,20 +2854,23 @@
             };
 
             useEffect(() => {
-                if (scrollTarget) {
-                    setTimeout(() => {
-                        const element = document.getElementById(scrollTarget);
-                        if (element) {
-                            const headerOffset = 100;
-                            const elementPosition = element.getBoundingClientRect().top;
-                            const offsetPosition = elementPosition + window.scrollY - headerOffset;
-                            window.scrollTo({
-                                top: offsetPosition,
-                                behavior: 'smooth'
-                            });
-                        }
-                    }, 100);
-                }
+                if (!scrollTarget) return;
+                const scrollToTarget = () => {
+                    const element = document.getElementById(scrollTarget);
+                    if (element) {
+                        const headerOffset = 100;
+                        const elementPosition = element.getBoundingClientRect().top;
+                        const offsetPosition = elementPosition + window.scrollY - headerOffset;
+                        window.scrollTo({
+                            top: offsetPosition,
+                            behavior: 'smooth'
+                        });
+                    }
+                };
+                // レイアウト確定前後で複数回スクロールし、画像読み込み等による位置ズレを補正
+                const t1 = setTimeout(scrollToTarget, 150);
+                const t2 = setTimeout(scrollToTarget, 600);
+                return () => { clearTimeout(t1); clearTimeout(t2); };
             }, [scrollTarget]);
 
             // クリックハンドラのマッピング
@@ -3756,7 +3777,7 @@
                                                             </div>
                                                             <ArrowRight size={18} className="text-slate-300 group-hover:text-[#06C755] transition-colors shrink-0" />
                                                         </a>
-                                                        <button onClick={() => navigateToRecruit(null)} className="flex-1 bg-slate-800 rounded-2xl shadow-lg shadow-slate-300 p-3 xl:p-4 flex items-center gap-3 xl:gap-4 group hover:bg-slate-700 transition-all cursor-pointer text-left">
+                                                        <button onClick={() => navigateToRecruit('application-form')} className="flex-1 bg-slate-800 rounded-2xl shadow-lg shadow-slate-300 p-3 xl:p-4 flex items-center gap-3 xl:gap-4 group hover:bg-slate-700 transition-all cursor-pointer text-left">
                                                             <div className="shrink-0 w-10 h-10 xl:w-12 xl:h-12 rounded-full bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-900/30">
                                                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                                                             </div>
@@ -3808,7 +3829,10 @@
                         </div>
                         {isSocialMenuOpen && (
                             <div className="absolute top-full left-0 w-full bg-white shadow-xl lg:hidden flex flex-col border-t border-slate-100 animate-in slide-in-from-top-5 duration-200">
-                                <div className="px-8 py-3 text-xs font-bold text-slate-400 bg-slate-50 border-b border-slate-100">公式SNS・採用LINE</div>
+                                <div className="px-8 py-3 text-xs font-bold text-slate-400 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                                    <span>公式SNS・採用LINE</span>
+                                    <button type="button" onClick={() => setIsSocialMenuOpen(false)} aria-label="閉じる" className="text-slate-400 hover:text-slate-600 active:scale-90 transition-all"><X size={18} /></button>
+                                </div>
                                 <a href="https://www.instagram.com/lifesupport__asahi?igsh=a3ViYjRnZW9haDA0" target="_blank" rel="noopener noreferrer" onClick={() => setIsSocialMenuOpen(false)} className="flex items-center justify-between gap-4 py-4 px-8 border-b border-slate-100 active:bg-slate-50"><span className="flex items-center gap-4 font-bold text-slate-700"><InstagramGradient size={22} />公式Instagram</span><ArrowRight size={16} className="text-slate-400" /></a>
                                 <a href="https://www.tiktok.com/@lifesupportasahi?_r=1&_t=ZS-933eSshEnRv" target="_blank" rel="noopener noreferrer" onClick={() => setIsSocialMenuOpen(false)} className="flex items-center justify-between gap-4 py-4 px-8 border-b border-slate-100 active:bg-slate-50"><span className="flex items-center gap-4 font-bold text-slate-700"><TikTokGlitch size={20} />公式TikTok</span><ArrowRight size={16} className="text-slate-400" /></a>
                                 <a href="https://youtube.com/channel/UCGCe56h_8FMtivkiG5aZqhQ?si=5-nnYr9SsupOtLn0" target="_blank" rel="noopener noreferrer" onClick={() => setIsSocialMenuOpen(false)} className="flex items-center justify-between gap-4 py-4 px-8 border-b border-slate-100 active:bg-slate-50"><span className="flex items-center gap-4 font-bold text-slate-700"><YoutubeButton size={16} />公式YouTube</span><ArrowRight size={16} className="text-slate-400" /></a>
