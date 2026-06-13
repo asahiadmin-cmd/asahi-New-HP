@@ -14,6 +14,7 @@
     <meta name="author" content="ライフサポートあさひ">
     <link rel="canonical" href="https://asahi1.co.jp/">
     <link rel="icon" type="image/png" href="logo.png">
+    <link rel="preload" as="image" href="loader-lead125.png?v=2">
 
     <!-- OGP: Facebook / LINE / General -->
     <meta property="og:type" content="website">
@@ -271,15 +272,193 @@
         #loading {
             position: fixed;
             inset: 0;
-            background: #fff;
+            background:
+                radial-gradient(circle at 50% 38%, rgba(255, 122, 42, 0.11), transparent 30%),
+                linear-gradient(180deg, #ffffff 0%, #f7f9fc 72%, #eef4fb 100%);
             display: flex;
             justify-content: center;
             align-items: center;
-            font-weight: bold;
-            color: #F97316;
             z-index: 9999;
             transition: opacity 0.5s;
             pointer-events: none;
+            overflow: hidden;
+        }
+
+        .loader-scene {
+            width: 100%;
+            text-align: center;
+        }
+
+        .loader-copy {
+            position: relative;
+            z-index: 2;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: #0b1733;
+            font-size: clamp(16px, 2vw, 22px);
+            font-weight: 900;
+        }
+
+        .loader-copy strong {
+            color: #ff641f;
+        }
+
+        .loader-dots {
+            display: inline-flex;
+            gap: 5px;
+        }
+
+        .loader-dots span {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #ff641f;
+            animation: loaderDot 1s ease-in-out infinite;
+        }
+
+        .loader-dots span:nth-child(2) { animation-delay: 0.15s; }
+        .loader-dots span:nth-child(3) { animation-delay: 0.3s; }
+
+        .loader-route {
+            position: relative;
+            width: 100%;
+            height: clamp(220px, 35vw, 360px);
+            margin-top: 10px;
+        }
+
+        .loader-rider {
+            position: absolute;
+            left: 50%;
+            bottom: 38px;
+            width: clamp(210px, 22vw, 280px);
+            transform: translateX(-50%);
+            animation: loaderRide 3.2s linear infinite -0.8s;
+            will-change: transform;
+        }
+
+        .loader-rider img {
+            display: block;
+            width: 100%;
+            height: auto;
+            animation: loaderBounce 0.38s ease-in-out infinite alternate;
+            filter: drop-shadow(0 14px 13px rgba(15, 23, 42, 0.18));
+        }
+
+        .loader-speed-line {
+            position: absolute;
+            left: 50%;
+            height: 3px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, transparent, rgba(255, 100, 31, 0.48));
+            animation: loaderWind 0.85s linear infinite;
+        }
+
+        .loader-speed-line:nth-child(1) {
+            top: 38%;
+            width: 150px;
+            margin-left: -270px;
+        }
+
+        .loader-speed-line:nth-child(2) {
+            top: 57%;
+            width: 105px;
+            margin-left: -245px;
+            animation-delay: -0.3s;
+        }
+
+        .loader-speed-line:nth-child(3) {
+            top: 72%;
+            width: 70px;
+            margin-left: -215px;
+            animation-delay: -0.55s;
+        }
+
+        .loader-road {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 22px;
+            height: 4px;
+            background: #cad5e3;
+            box-shadow: 0 9px 22px rgba(49, 68, 93, 0.13);
+        }
+
+        .loader-road::after {
+            content: "";
+            position: absolute;
+            top: 12px;
+            left: -100%;
+            width: 300%;
+            height: 4px;
+            background: repeating-linear-gradient(90deg, #ff7a2a 0 48px, transparent 48px 88px);
+            animation: loaderRoad 0.7s linear infinite;
+        }
+
+        @keyframes loaderRide {
+            0% { transform: translateX(calc(-50% - 36vw)); }
+            100% { transform: translateX(calc(-50% + 36vw)); }
+        }
+
+        @keyframes loaderBounce {
+            from { transform: translateY(0) rotate(-0.4deg); }
+            to { transform: translateY(-4px) rotate(0.4deg); }
+        }
+
+        @keyframes loaderWind {
+            from { transform: translateX(70px); opacity: 0; }
+            30% { opacity: 1; }
+            to { transform: translateX(-90px); opacity: 0; }
+        }
+
+        @keyframes loaderRoad {
+            to { transform: translateX(-88px); }
+        }
+
+        @keyframes loaderDot {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.35; }
+            30% { transform: translateY(-5px); opacity: 1; }
+        }
+
+        @media (max-width: 640px) {
+            .loader-copy {
+                font-size: 16px;
+            }
+
+            .loader-route {
+                height: 250px;
+            }
+
+            .loader-rider {
+                width: 205px;
+                bottom: 34px;
+                animation-name: loaderRideMobile;
+            }
+
+            .loader-speed-line:nth-child(1) { margin-left: -205px; }
+            .loader-speed-line:nth-child(2) { margin-left: -185px; }
+            .loader-speed-line:nth-child(3) { margin-left: -165px; }
+        }
+
+        @keyframes loaderRideMobile {
+            0% { transform: translateX(calc(-50% - 22vw)); }
+            100% { transform: translateX(calc(-50% + 22vw)); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .loader-rider {
+                animation: none;
+            }
+
+            .loader-rider img {
+                animation: none;
+            }
+
+            .loader-speed-line,
+            .loader-road::after,
+            .loader-dots span {
+                animation-duration: 2.5s;
+            }
         }
 
         /* モバイル用: 事業所一覧ページの画像を縦長表示 */
@@ -307,7 +486,21 @@
 </head>
 
 <body>
-    <div id="loading">Loading...</div>
+    <div id="loading" role="status" aria-live="polite" aria-label="ページを読み込んでいます">
+        <div class="loader-scene">
+            <div class="loader-copy">
+                <span><strong>Loading</strong></span>
+                <span class="loader-dots" aria-hidden="true"><span></span><span></span><span></span></span>
+            </div>
+            <div class="loader-route" aria-hidden="true">
+                <span class="loader-speed-line"></span>
+                <span class="loader-speed-line"></span>
+                <span class="loader-speed-line"></span>
+                <div class="loader-rider"><img src="loader-lead125.png?v=2" alt=""></div>
+                <div class="loader-road"></div>
+            </div>
+        </div>
+    </div>
     <div id="root"></div>
 
     <!-- SEO: noscript fallback for crawlers -->
@@ -1660,6 +1853,829 @@
             );
         };
 
+        // --- Salary Simulation ---
+        const SIMULATION_TABS = [
+            { id: "housewife", label: "主婦さん", icon: "Home" },
+            { id: "doublework", label: "Wワーク", icon: "Briefcase" },
+            { id: "social", label: "社保加入", icon: "Shield" },
+            { id: "morning", label: "早朝のみ", icon: "Sun" },
+        ];
+
+        const SIMULATION_PANELS = {
+            housewife: {
+                persona: "子育て中の主婦さん",
+                title: "9:00〜14:00の間で週4日",
+                monthly: "107,950円",
+                monthlyNote: "週4日 × 月17日勤務の場合",
+                rows: [
+                    { time: "09:00〜09:30", label: "30分サービス", amount: "1,350円" },
+                    { time: "10:00〜11:00", label: "60分サービス", amount: "2,000円" },
+                    { time: "12:00〜13:30", label: "90分サービス", amount: "3,000円" },
+                ],
+                total: "6,350円",
+                catch: "午前〜昼過ぎまでで、家事や子育てとも両立しやすい働き方。",
+            },
+            doublework: {
+                badge: "夕方勤務におすすめ",
+                persona: "Wワーク会社員",
+                title: "17:30〜19:45の間で週3日",
+                monthly: "67,431円",
+                monthlyNote: "週3日 × 月13日勤務の場合",
+                rows: [
+                    { time: "17:30〜18:00", label: "30分サービス", amount: "1,350円" },
+                    { time: "18:15〜19:15", label: "60分サービス 夜間", amount: "2,325円", type: "night" },
+                    { time: "19:25〜19:45", label: "20分サービス 夜間", amount: "1,512円", type: "night" },
+                ],
+                total: "5,187円",
+                catch: "本業後の短時間でも、夕方・夜間の時間帯を活かしてしっかり収入に。",
+            },
+            social: {
+                persona: "社保加入ヘルパー",
+                title: "7:00〜19:30の間で週5日",
+                monthly: "326,414円",
+                monthlyNote: "週5日 × 月22日勤務の場合",
+                rows: [
+                    { time: "07:00〜08:00", label: "60分サービス 早朝", amount: "2,525円", type: "night" },
+                    { time: "08:30〜09:00", label: "30分サービス", amount: "1,450円" },
+                    { time: "09:30〜10:30", label: "60分サービス", amount: "2,200円" },
+                    { time: "10:30〜14:00", label: "自由時間", amount: "ジムで筋トレ → 会社でタンパク質補給（笑）", type: "free" },
+                    { time: "14:00〜15:30", label: "90分サービス", amount: "3,300円" },
+                    { time: "16:00〜16:30", label: "30分サービス", amount: "1,450円" },
+                    { time: "18:00〜18:30", label: "30分サービス 夜間", amount: "1,612円", type: "night" },
+                    { time: "18:45〜19:30", label: "45分サービス 夜間", amount: "2,300円", type: "night" },
+                ],
+                total: "14,837円",
+                catch: "日中にまとまった自由時間を取りながら、朝夕の高単価帯も活かして安定収入に。",
+            },
+            morning: {
+                badge: "早朝のみ",
+                persona: "本業前の早朝ヘルパー",
+                title: "6:30〜8:00の間で週3日",
+                monthly: "47,606円",
+                monthlyNote: "週3日 × 月13日勤務の場合",
+                rows: [
+                    { time: "06:30〜07:00", label: "30分サービス 早朝", amount: "1,512円", type: "night" },
+                    { time: "07:20〜08:00", label: "45分サービス 早朝", amount: "2,150円", type: "night" },
+                ],
+                total: "3,662円",
+                catch: "週3回だけ早起きして、本業前にお小遣い稼ぎ。朝の高単価帯をいいとこ取り。",
+            },
+        };
+
+        const SalarySimulation = () => {
+            const [activeTab, setActiveTab] = useState("housewife");
+            const panel = SIMULATION_PANELS[activeTab];
+
+            return (
+                <section className="asahi-simulation-section" aria-labelledby="simulation-title">
+                    <style>{`
+                        .asahi-simulation-section {
+                            width: 100%;
+                            color: #0b162d;
+                        }
+                        .simulation-head {
+                            text-align: center;
+                            margin-bottom: 28px;
+                        }
+                        .simulation-head .eyebrow {
+                            color: #ff6b1a;
+                            font-size: 13px;
+                            font-weight: 800;
+                            letter-spacing: .08em;
+                        }
+                        .simulation-head h2 {
+                            margin: 8px 0 0;
+                            font-size: clamp(20px, 2.4vw, 26px);
+                            line-height: 1.16;
+                            letter-spacing: -0.04em;
+                            background: linear-gradient(90deg, #f15a24 0%, #b34a35 38%, #20285a 66%, #111832 100%);
+                            -webkit-background-clip: text;
+                            background-clip: text;
+                            color: transparent;
+                            font-weight: 900;
+                        }
+                        .simulation-head p {
+                            color: #64748b;
+                            font-weight: 700;
+                            font-size: 15px;
+                            margin: 8px 0 0;
+                        }
+                        .simulation-head p strong {
+                            color: #ff6b1a;
+                        }
+                        .simulation-tabs {
+                            display: flex;
+                            justify-content: center;
+                            gap: 10px;
+                            flex-wrap: wrap;
+                            margin: 0;
+                            padding: 14px 18px;
+                            background: rgba(255, 255, 255, 0.92);
+                            border-bottom: 1px solid rgba(15,23,42,.07);
+                        }
+                        .sim-tab {
+                            display: inline-flex;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 8px;
+                            border: 2px solid rgba(11,22,45,.08);
+                            background: #fff;
+                            color: #0b162d;
+                            padding: 11px 14px;
+                            border-radius: 12px;
+                            font-weight: 900;
+                            font-size: 14px;
+                            cursor: pointer;
+                            box-shadow: 0 6px 18px rgba(15,23,42,.05);
+                            transition: .22s ease;
+                        }
+                        .sim-tab svg {
+                            color: #ff6b1a;
+                            transition: color .22s ease;
+                            flex-shrink: 0;
+                        }
+                        .sim-tab:hover {
+                            transform: translateY(-2px);
+                            border-color: rgba(255,107,26,.4);
+                            box-shadow: 0 10px 24px rgba(255,107,26,.12);
+                        }
+                        .sim-tab.active {
+                            color: #fff;
+                            background: #ff6b1a;
+                            border-color: transparent;
+                            box-shadow: 0 12px 28px rgba(255,107,26,.28);
+                            transform: translateY(-1px);
+                        }
+                        .sim-tab.active svg {
+                            color: #fff;
+                        }
+                        .simulation-panel {
+                            animation: simFadeUp .28s ease;
+                        }
+                        @keyframes simFadeUp {
+                            from { opacity: 0; transform: translateY(8px); }
+                            to { opacity: 1; transform: translateY(0); }
+                        }
+                        .simulation-card {
+                            position: relative;
+                            background: #fff;
+                            border: 1px solid rgba(15,23,42,.08);
+                            border-radius: 28px;
+                            box-shadow: 0 18px 60px rgba(15,23,42,.08);
+                            overflow: hidden;
+                        }
+                        .simulation-card .card-top {
+                            position: relative;
+                            padding: 22px 24px 14px;
+                        }
+                        .simulation-card .persona {
+                            display: block;
+                            margin-bottom: 8px;
+                            color: #ff5a14;
+                            font-size: 20px;
+                            font-weight: 900;
+                        }
+                        .simulation-card .card-top h3 {
+                            margin: 0;
+                            font-size: 25px;
+                            line-height: 1.35;
+                            letter-spacing: -0.04em;
+                        }
+                        .simulation-card .monthly-box {
+                            margin: 0 24px 10px;
+                            padding: 18px;
+                            border-radius: 22px;
+                            background: linear-gradient(135deg, #fff7f0, #fff);
+                            border: 1px solid rgba(255,107,26,.13);
+                        }
+                        .simulation-card .monthly-box span,
+                        .simulation-card .monthly-box small {
+                            display: block;
+                            color: #64748b;
+                            font-weight: 800;
+                        }
+                        .simulation-card .monthly-box strong {
+                            display: block;
+                            margin: 4px 0;
+                            color: #ff5a14;
+                            font-size: clamp(34px, 4vw, 46px);
+                            line-height: 1;
+                            letter-spacing: -0.05em;
+                        }
+                        .simulation-card .schedule-table {
+                            margin: 0 24px;
+                            border-top: 1px solid rgba(15,23,42,.07);
+                        }
+                        .simulation-card .schedule-row {
+                            display: grid;
+                            grid-template-columns: 110px 1fr auto;
+                            align-items: center;
+                            gap: 12px;
+                            padding: 15px 0;
+                            border-bottom: 1px solid rgba(15,23,42,.07);
+                        }
+                        .simulation-card .schedule-row span {
+                            color: #64748b;
+                            font-size: 12px;
+                            font-weight: 800;
+                        }
+                        .simulation-card .schedule-row b {
+                            font-size: 14px;
+                        }
+                        .simulation-card .schedule-row strong {
+                            color: #0b162d;
+                            font-size: 17px;
+                            white-space: nowrap;
+                        }
+                        .simulation-card .schedule-row.night strong,
+                        .simulation-card .total-row strong {
+                            color: #ff5a14;
+                        }
+                        .simulation-card .free-time {
+                            background: linear-gradient(90deg, rgba(255,107,26,.04), rgba(11,22,45,.03));
+                        }
+                        .simulation-card .free-time strong {
+                            color: #0b162d;
+                            white-space: normal;
+                        }
+                        .simulation-card .total-row {
+                            background: rgba(248,250,252,.76);
+                        }
+                        .simulation-card .total-row span,
+                        .simulation-card .total-row b {
+                            color: #0b162d;
+                        }
+                        .simulation-card .catch-copy {
+                            margin: 16px 24px 24px;
+                            color: #475569;
+                            font-size: 14px;
+                            font-weight: 700;
+                            line-height: 1.8;
+                        }
+                        .simulation-card .badge {
+                            position: absolute;
+                            top: 20px;
+                            right: 24px;
+                            z-index: 2;
+                            padding: 7px 11px;
+                            border-radius: 999px;
+                            background: #0b162d;
+                            color: #fff;
+                            font-size: 11px;
+                            font-weight: 800;
+                        }
+                        .simulation-note {
+                            margin: 0 24px 24px;
+                            padding: 16px 0 0;
+                            border-top: 1px solid #e0e5ed;
+                            display: flex;
+                            align-items: center;
+                            gap: 12px;
+                            color: #34445d;
+                            font-size: 13px;
+                            font-weight: 700;
+                            line-height: 1.7;
+                        }
+                        .simulation-note .note-icon {
+                            width: 20px;
+                            height: 20px;
+                            border-radius: 50%;
+                            background: #5e6f8a;
+                            color: #fff;
+                            display: inline-grid;
+                            place-items: center;
+                            font-size: 13px;
+                            font-weight: 900;
+                            flex-shrink: 0;
+                        }
+                        @media (max-width: 760px) {
+                            .simulation-card .card-top,
+                            .simulation-card .monthly-box,
+                            .simulation-card .schedule-table,
+                            .simulation-card .catch-copy,
+                            .simulation-card .simulation-note {
+                                margin-left: 18px;
+                                margin-right: 18px;
+                            }
+                            .simulation-card .card-top {
+                                padding-left: 0;
+                                padding-right: 0;
+                            }
+                            .simulation-card .badge {
+                                right: 0;
+                            }
+                            .simulation-card .schedule-row {
+                                grid-template-columns: 1fr;
+                                gap: 4px;
+                            }
+                            .simulation-card .schedule-row strong {
+                                font-size: 20px;
+                            }
+                            .sim-tab {
+                                width: calc(50% - 5px);
+                            }
+                        }
+                    `}</style>
+
+                    <div className="simulation-head">
+                        <span className="eyebrow">Work Style Simulation</span>
+                        <h2 id="simulation-title">働き方・給与シミュレーション</h2>
+                        <p><strong>ライフスタイル</strong>に合わせた働き方で、どれくらい収入になるかをイメージできます。</p>
+                    </div>
+
+                    <div className="simulation-panel" key={activeTab}>
+                        <article className="simulation-card">
+                            <div className="simulation-tabs" role="tablist">
+                                {SIMULATION_TABS.map((tab) => (
+                                    <button
+                                        key={tab.id}
+                                        className={`sim-tab ${activeTab === tab.id ? 'active' : ''}`}
+                                        role="tab"
+                                        aria-selected={activeTab === tab.id}
+                                        onClick={() => setActiveTab(tab.id)}
+                                    >
+                                        <Icon name={tab.icon} size={18} />
+                                        <span>{tab.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="card-top">
+                                {panel.badge && <div className="badge">{panel.badge}</div>}
+                                <span className="persona">{panel.persona}</span>
+                                <h3>{panel.title}</h3>
+                            </div>
+
+                            <div className="monthly-box">
+                                <span>月収例</span>
+                                <strong>{panel.monthly}</strong>
+                                <small>{panel.monthlyNote}</small>
+                            </div>
+
+                            <div className="schedule-table">
+                                {panel.rows.map((row, i) => (
+                                    <div key={i} className={`schedule-row ${row.type === 'night' ? 'night' : ''} ${row.type === 'free' ? 'free-time' : ''}`}>
+                                        <span>{row.time}</span><b>{row.label}</b><strong>{row.amount}</strong>
+                                    </div>
+                                ))}
+                                <div className="schedule-row total-row"><span>1日合計</span><b></b><strong>{panel.total}</strong></div>
+                            </div>
+
+                            <p className="catch-copy">{panel.catch}</p>
+                            <p className="simulation-note"><span className="note-icon">i</span>月収例は目安です。実際の勤務日数・サービス内容・移動状況により変動します。20分サービスは30分サービスと同額です。</p>
+                        </article>
+                    </div>
+                </section>
+            );
+        };
+
+        // --- Reward Table (単価表) ---
+        const REWARD_TABS = [
+            { id: "registered", label: "登録ヘルパー", icon: "User" },
+            { id: "social", label: "社保加入ヘルパー", icon: "Shield" },
+        ];
+
+        const REWARD_PRICE_DATA = {
+            registered: [
+                { time: "30分", day: "1,350", dayDetail: "内訳：650円（基本給）+450円（処遇改善）+350円", night: "1,512", nightDetail: "内訳：812円（基本給）+450円（処遇改善）+350円" },
+                { time: "45分", day: "1,825", dayDetail: "内訳：1,300円（基本給）+525円（処遇改善）", night: "2,150", nightDetail: "内訳：1,625円（基本給）+525円（処遇改善）" },
+                { time: "60分", day: "2,000", dayDetail: "内訳：1,300円（基本給）+700円（処遇改善）", night: "2,325", nightDetail: "内訳：1,625円（基本給）+700円（処遇改善）" },
+                { time: "90分", day: "3,000", dayDetail: "内訳：1,950円（基本給）+1,050円（処遇改善）", night: "3,487", nightDetail: "内訳：2,437円（基本給）+1,050円（処遇改善）" },
+            ],
+            social: [
+                { time: "30分", day: "1,450", dayDetail: "内訳：750円（基本給）+350円（処遇改善）+350円", night: "1,612", nightDetail: "内訳：912円（基本給）+350円（処遇改善）+350円" },
+                { time: "45分", day: "1,975", dayDetail: "内訳：1,450円（基本給）+525円（処遇改善）", night: "2,300", nightDetail: "内訳：1,775円（基本給）+525円（処遇改善）" },
+                { time: "60分", day: "2,200", dayDetail: "内訳：1,500円（基本給）+700円（処遇改善）", night: "2,525", nightDetail: "内訳：1,825円（基本給）+700円（処遇改善）" },
+                { time: "90分", day: "3,300", dayDetail: "内訳：2,250円（基本給）+1,050円（処遇改善）", night: "3,787", nightDetail: "内訳：2,737円（基本給）+1,050円（処遇改善）" },
+            ],
+        };
+
+        const RewardPriceBox = ({ type, amount, detail }) => (
+            <div className={`price-box ${type}-box`}>
+                <div className="price-main">{amount}<small>円</small></div>
+                <div className="price-detail">{detail}</div>
+            </div>
+        );
+
+        const RewardTable = () => {
+            const [activeType, setActiveType] = useState("registered");
+            const rows = REWARD_PRICE_DATA[activeType];
+
+            return (
+                <section className="reward-section">
+                    <style>{`
+                        .reward-section {
+                            width: 100%;
+                            color: #0b1733;
+                        }
+                        .reward-heading {
+                            display: flex;
+                            align-items: center;
+                            gap: 22px;
+                            margin-bottom: 28px;
+                        }
+                        .reward-icon {
+                            position: relative;
+                            width: 50px;
+                            height: 50px;
+                            border-radius: 50%;
+                            background: linear-gradient(135deg, #ff9f1c, #ff5a1f);
+                            color: #fff;
+                            display: grid;
+                            place-items: center;
+                            font-size: 26px;
+                            font-weight: 800;
+                            box-shadow: 0 10px 22px rgba(255, 106, 31, 0.28);
+                            flex-shrink: 0;
+                        }
+                        .reward-icon::after {
+                            content: "▦";
+                            position: absolute;
+                            right: -10px;
+                            bottom: -5px;
+                            width: 22px;
+                            height: 22px;
+                            border-radius: 6px;
+                            background: #ff7a2a;
+                            color: #fff;
+                            font-size: 14px;
+                            display: grid;
+                            place-items: center;
+                            box-shadow: 0 6px 12px rgba(255, 106, 31, 0.24);
+                        }
+                        .reward-heading h2 {
+                            margin: 0;
+                            font-size: clamp(20px, 2.4vw, 26px);
+                            letter-spacing: -0.04em;
+                            line-height: 1.16;
+                            font-weight: 900;
+                            background: linear-gradient(90deg, #f15a24 0%, #b34a35 38%, #20285a 66%, #111832 100%);
+                            -webkit-background-clip: text;
+                            background-clip: text;
+                            color: transparent;
+                        }
+                        .reward-heading p {
+                            margin: 6px 0 0;
+                            color: #42526e;
+                            font-weight: 600;
+                            font-size: 15px;
+                        }
+                        .reward-card {
+                            background: rgba(255, 255, 255, 0.88);
+                            border: 1px solid rgba(210, 216, 228, 0.8);
+                            border-radius: 18px;
+                            overflow: hidden;
+                            box-shadow: 0 18px 45px rgba(31, 52, 92, 0.14);
+                            display: flex;
+                            flex-direction: column;
+                        }
+                        .reward-tabs {
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            gap: 10px;
+                            flex-wrap: wrap;
+                            padding: 14px 18px;
+                            border-bottom: 1px solid rgba(15,23,42,.07);
+                            background: rgba(255, 255, 255, 0.92);
+                        }
+                        .tab-button {
+                            display: inline-flex;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 8px;
+                            border: 2px solid rgba(11,22,45,.08);
+                            background: #fff;
+                            color: #0b162d;
+                            padding: 11px 14px;
+                            border-radius: 12px;
+                            font-size: 14px;
+                            font-weight: 900;
+                            cursor: pointer;
+                            white-space: nowrap;
+                            box-shadow: 0 6px 18px rgba(15,23,42,.05);
+                            transition: .22s ease;
+                        }
+                        .tab-button svg {
+                            color: #ff6b1a;
+                            transition: color .22s ease;
+                            flex-shrink: 0;
+                        }
+                        .tab-button:hover {
+                            transform: translateY(-2px);
+                            border-color: rgba(255,107,26,.4);
+                            box-shadow: 0 10px 24px rgba(255,107,26,.12);
+                        }
+                        .tab-button.active {
+                            color: #fff;
+                            background: #ff6b1a;
+                            border-color: transparent;
+                            box-shadow: 0 12px 28px rgba(255,107,26,.28);
+                            transform: translateY(-1px);
+                        }
+                        .tab-button.active svg {
+                            color: #fff;
+                        }
+                        .reward-table {
+                            padding: 22px 20px;
+                            flex: 1;
+                            display: flex;
+                            flex-direction: column;
+                            background:
+                                radial-gradient(circle at top left, rgba(235, 242, 255, 0.9), transparent 34%),
+                                radial-gradient(circle at top right, rgba(255, 239, 223, 0.75), transparent 32%),
+                                #f7f9fc;
+                        }
+                        .reward-table > div:last-child {
+                            flex: 1;
+                            display: grid;
+                            grid-template-rows: repeat(4, minmax(76px, 1fr));
+                            gap: 10px;
+                        }
+                        .reward-table-head,
+                        .reward-row {
+                            display: grid;
+                            grid-template-columns: minmax(54px, 76px) 1fr 1fr;
+                            gap: 8px;
+                        }
+                        .reward-table-head {
+                            align-items: center;
+                            margin-bottom: 12px;
+                        }
+                        .reward-row {
+                            margin-bottom: 0;
+                        }
+                        .reward-row:last-child {
+                            margin-bottom: 0;
+                        }
+                        .time-title {
+                            text-align: center;
+                            font-weight: 900;
+                            font-size: clamp(10px, 1vw, 12px);
+                            line-height: 1.4;
+                            color: #0b376c;
+                        }
+                        .time-title span {
+                            display: inline-block;
+                            margin-right: 4px;
+                            font-size: clamp(13px, 1.4vw, 18px);
+                            vertical-align: middle;
+                        }
+                        .time-title.day span {
+                            color: #ff8a1f;
+                        }
+                        .time-title.night span {
+                            color: #0d4b8f;
+                        }
+                        .time-box,
+                        .price-box {
+                            min-height: 100%;
+                            border-radius: 10px;
+                            background: rgba(255, 255, 255, 0.94);
+                            border: 1px solid rgba(220, 226, 235, 0.9);
+                            box-shadow: 0 6px 16px rgba(22, 35, 62, 0.08);
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                        }
+                        .time-box {
+                            flex-direction: column;
+                            gap: 6px;
+                            font-size: clamp(15px, 1.5vw, 18px);
+                            font-weight: 900;
+                            color: #08142f;
+                            white-space: nowrap;
+                        }
+                        .clock {
+                            width: 22px;
+                            height: 22px;
+                            border-radius: 50%;
+                            display: grid;
+                            place-items: center;
+                            color: #ff641f;
+                            background: #fff3ec;
+                            font-size: 13px;
+                            flex-shrink: 0;
+                        }
+                        .price-box {
+                            flex-direction: column;
+                            text-align: center;
+                            padding: 10px 8px;
+                        }
+                        .price-main {
+                            font-size: clamp(24px, 2.2vw, 30px);
+                            line-height: 1;
+                            font-weight: 900;
+                            letter-spacing: 0;
+                        }
+                        .price-main small {
+                            font-size: 0.45em;
+                            margin-left: 4px;
+                        }
+                        .price-box.day-box .price-main {
+                            color: #0b162d;
+                        }
+                        .price-box.night-box .price-main {
+                            color: #ff5a1f;
+                        }
+                        .price-detail {
+                            margin-top: 8px;
+                            font-size: clamp(9px, 0.85vw, 11px);
+                            color: #0b1733;
+                            font-weight: 800;
+                            line-height: 1.45;
+                        }
+                        .reward-notes {
+                            padding: 12px 20px 13px;
+                            background: rgba(255, 255, 255, 0.92);
+                            border-top: 1px solid #e0e5ed;
+                        }
+                        .reward-notes p {
+                            display: flex;
+                            align-items: center;
+                            gap: 11px;
+                            margin: 5px 0;
+                            color: #34445d;
+                            font-weight: 700;
+                            font-size: 13px;
+                            line-height: 1.55;
+                        }
+                        .reward-notes p:first-child {
+                            margin-top: 0;
+                        }
+                        .reward-notes p:last-child {
+                            margin-bottom: 0;
+                        }
+                        .reward-notes .note-icon {
+                            width: 20px;
+                            height: 20px;
+                            border-radius: 50%;
+                            background: #5e6f8a;
+                            color: #fff;
+                            display: inline-grid;
+                            place-items: center;
+                            font-size: 12px;
+                            font-weight: 900;
+                            flex-shrink: 0;
+                        }
+                        @media (max-width: 720px) {
+                            .tab-button {
+                                width: calc(50% - 5px);
+                                padding-left: 8px;
+                                padding-right: 8px;
+                                font-size: 13px;
+                            }
+                            .reward-table {
+                                display: block;
+                            }
+                            .reward-table > div:last-child {
+                                display: block;
+                            }
+                            .reward-table-head {
+                                display: none;
+                            }
+                            .reward-row {
+                                grid-template-columns: 1fr;
+                                margin-bottom: 18px;
+                            }
+                            .time-box,
+                            .price-box {
+                                min-height: 76px;
+                            }
+                            .time-box {
+                                flex-direction: row;
+                                min-height: 60px;
+                                font-size: 18px;
+                                gap: 10px;
+                            }
+                            .price-box::before {
+                                display: block;
+                                margin-bottom: 10px;
+                                font-size: 14px;
+                                font-weight: 900;
+                                color: #0b376c;
+                            }
+                            .price-box.day-box::before {
+                                content: "☀ 日中（6:00〜18:00）";
+                            }
+                            .price-box.night-box::before {
+                                content: "☾ 早朝・夜間（6:00〜8:00 / 18:00〜22:00）";
+                            }
+                            .price-main {
+                                font-size: 32px;
+                            }
+                            .price-detail {
+                                font-size: 12px;
+                            }
+                        }
+                    `}</style>
+
+                    <div className="reward-heading">
+                        <div className="reward-icon"><span>¥</span></div>
+                        <div>
+                            <h2>サービス報酬</h2>
+                            <p>あなたの頑張りをしっかり評価する報酬体系です。</p>
+                        </div>
+                    </div>
+
+                    <div className="reward-card">
+                        <div className="reward-tabs" role="tablist">
+                            {REWARD_TABS.map((tab) => (
+                                <button
+                                    key={tab.id}
+                                    className={`tab-button ${activeType === tab.id ? 'active' : ''}`}
+                                    role="tab"
+                                    aria-selected={activeType === tab.id}
+                                    onClick={() => setActiveType(tab.id)}
+                                >
+                                    <Icon name={tab.icon} size={18} />
+                                    <span>{tab.label}</span>
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="reward-table">
+                            <div className="reward-table-head">
+                                <div></div>
+                                <div className="time-title day"><span>☀</span>日中（6:00〜18:00）</div>
+                                <div className="time-title night"><span>☾</span>早朝・夜間（6:00〜8:00 / 18:00〜22:00）</div>
+                            </div>
+                            <div>
+                                {rows.map((item, i) => (
+                                    <div key={i} className="reward-row">
+                                        <div className="time-box"><span className="clock">◷</span><span>{item.time}</span></div>
+                                        <RewardPriceBox type="day" amount={item.day} detail={item.dayDetail} />
+                                        <RewardPriceBox type="night" amount={item.night} detail={item.nightDetail} />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="reward-notes">
+                            <p><span className="note-icon">i</span>30分サービスには、別途「30分調整金（350円）」がつきます。</p>
+                            <p><span className="note-icon">i</span>処遇改善手当は、60分あたりの金額を時間に応じて按分しています。</p>
+                            <p><span className="note-icon">i</span>日曜日は基本給が25%UPします。</p>
+                        </div>
+                    </div>
+                </section>
+            );
+        };
+
+        // --- Work Style & Reward Section (2-column layout) ---
+        const WorkRewardSection = () => (
+            <div className="work-reward-grid">
+                <style>{`
+                    .work-reward-grid {
+                        max-width: 1280px;
+                        margin: 64px auto;
+                        padding: 0 24px;
+                        display: grid;
+                        grid-template-columns: 1fr;
+                        gap: 48px;
+                        align-items: start;
+                    }
+                    @media (min-width: 1100px) {
+                        .work-reward-grid {
+                            grid-template-columns: 1fr 1fr;
+                            gap: 32px;
+                            align-items: stretch;
+                        }
+                        .work-reward-grid .reward-section,
+                        .work-reward-grid .asahi-simulation-section {
+                            display: grid;
+                            grid-template-rows: 96px minmax(0, 1fr);
+                            row-gap: 24px;
+                            height: 100%;
+                        }
+                        .work-reward-grid .reward-heading,
+                        .work-reward-grid .simulation-head {
+                            margin: 0;
+                        }
+                        .work-reward-grid .reward-heading,
+                        .work-reward-grid .simulation-head {
+                            align-self: center;
+                        }
+                        .work-reward-grid .reward-card,
+                        .work-reward-grid .simulation-panel {
+                            grid-row: 2;
+                            height: 100%;
+                        }
+                        .work-reward-grid .simulation-card {
+                            height: 100%;
+                        }
+                    }
+                    @media (max-width: 760px) {
+                        .work-reward-grid {
+                            margin: 48px auto;
+                            padding: 0 16px;
+                            gap: 40px;
+                        }
+                    }
+                `}</style>
+                <RewardTable />
+                <SalarySimulation />
+            </div>
+        );
+
         // --- Recruit Page ---
         const RecruitPage = ({ onBack, scrollTarget, recruitCards = [], recruitFulltime = [], recruitHelper = [], recruitHelperInsured = [], recruitIntern = [] }) => {
             const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1906,6 +2922,8 @@
                         {selectedJob === 'helper' && (<HelperJobDetailCard onClose={closeJobDetail} data={recruitHelper} />)}
                         {selectedJob === 'helper_insured' && (<HelperInsuredJobDetailCard onClose={closeJobDetail} data={recruitHelperInsured} />)}
                         {selectedJob === 'intern' && (<InternJobDetailCard onClose={closeJobDetail} />)}
+
+                        <WorkRewardSection />
 
                         <div id="application-form" className="max-w-3xl mx-auto bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl border border-white/60 overflow-hidden mb-20">
                             <div className="bg-white/50 border-b border-slate-100 px-8 py-6 flex items-center gap-3"><div className="p-2 bg-orange-50 rounded-lg text-orange-500"><Briefcase size={24} /></div><h2 className="text-xl font-black text-slate-800">面接・見学 応募フォーム</h2></div>
