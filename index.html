@@ -967,9 +967,9 @@
         };
 
         const Logo = ({ textColor = "text-slate-900" }) => (
-            <div className="flex items-center gap-1.5 md:gap-2">
-                <img src="logo.png" alt="ライフサポートあさひ" className="h-8 w-8 md:h-9 md:w-9 object-contain" />
-                <span className="text-base md:text-2xl font-black tracking-wide bg-gradient-to-r from-orange-500 via-orange-400 to-amber-500 bg-clip-text text-transparent transition-all duration-300 whitespace-nowrap" style={{ textShadow: 'none', letterSpacing: '0.05em' }}>ライフサポートあさひ</span>
+            <div className="flex items-center gap-1.5 md:gap-2 min-w-0">
+                <img src="logo.png" alt="ライフサポートあさひ" className="h-8 w-8 md:h-9 md:w-9 object-contain shrink-0" />
+                <span className="text-[15px] sm:text-base md:text-2xl font-black tracking-tight md:tracking-wide bg-gradient-to-r from-orange-500 via-orange-400 to-amber-500 bg-clip-text text-transparent transition-all duration-300 whitespace-nowrap truncate min-w-0" style={{ textShadow: 'none' }}>ライフサポートあさひ</span>
             </div>
         );
 
@@ -3044,6 +3044,14 @@
                                                             </label>
                                                         ))}
                                                     </div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {['門真'].map((loc, i) => (
+                                                            <label key={`mensetu4-${i}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-orange-300 cursor-pointer transition-colors text-xs font-medium text-slate-600">
+                                                                <input type="radio" name="interview-choice" value={`面接（${loc}）`} className="w-3.5 h-3.5 text-orange-500 focus:ring-orange-500 border-gray-300" required />
+                                                                <span>{loc}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             </div>
                                             {/* 面談 */}
@@ -3072,6 +3080,14 @@
                                                     <div className="flex flex-wrap gap-2">
                                                         {['布施', '加納'].map((loc, i) => (
                                                             <label key={`mendan3-${i}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-orange-300 cursor-pointer transition-colors text-xs font-medium text-slate-600">
+                                                                <input type="radio" name="interview-choice" value={`面談（${loc}）`} className="w-3.5 h-3.5 text-orange-500 focus:ring-orange-500 border-gray-300" required />
+                                                                <span>{loc}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {['門真'].map((loc, i) => (
+                                                            <label key={`mendan4-${i}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-orange-300 cursor-pointer transition-colors text-xs font-medium text-slate-600">
                                                                 <input type="radio" name="interview-choice" value={`面談（${loc}）`} className="w-3.5 h-3.5 text-orange-500 focus:ring-orange-500 border-gray-300" required />
                                                                 <span>{loc}</span>
                                                             </label>
@@ -3235,7 +3251,7 @@
             const [isMenuOpen, setIsMenuOpen] = useState(false);
             const [isSocialMenuOpen, setIsSocialMenuOpen] = useState(false);
             const [scrolled, setScrolled] = useState(false);
-            const [view, setView] = useState('recruit');
+            const [view, setView] = useState('home');
             const [recruitScrollTarget, setRecruitScrollTarget] = useState(null);
 
             // スプレッドシートデータの状態管理
@@ -3803,8 +3819,8 @@
                     <IconGradients />
 
                     <nav className="fixed top-0 z-50 w-full transition-all duration-300 bg-white/95 backdrop-blur-md shadow-md py-3">
-                        <div className="container mx-auto px-6 flex items-center justify-between">
-                            <div className="cursor-pointer group" onClick={() => navigateTo('home')}><div className={`flex items-center gap-2 transition-all duration-300`}><Logo textColor="text-orange-500" /></div></div>
+                        <div className="container mx-auto px-4 md:px-6 flex items-center justify-between gap-2">
+                            <div className="cursor-pointer group min-w-0" onClick={() => navigateTo('home')}><div className={`flex items-center gap-2 transition-all duration-300 min-w-0`}><Logo textColor="text-orange-500" /></div></div>
                             <div className="hidden lg:flex items-center gap-6 text-sm font-bold transition-colors duration-300 text-slate-800">
                                 <button onClick={() => navigateTo('home')} className="hover:text-slate-600 transition-colors whitespace-nowrap">トップページ</button>
                                 <button onClick={() => navigateTo('company')} className="hover:text-slate-600 transition-colors whitespace-nowrap">会社概要</button>
@@ -3819,7 +3835,7 @@
                                     <a href="https://lin.ee/6CCSe0V" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center hover:scale-110 transition-transform"><LineIcon size={22} /></a>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2 md:gap-3">
+                            <div className="flex items-center gap-2 md:gap-3 shrink-0">
                                 <div className={`flex lg:hidden items-center gap-1 rounded-lg px-1 py-1 transition-colors ${isSocialMenuOpen ? 'bg-slate-100' : ''}`}>
                                     <button type="button" onClick={toggleSocialMenu} aria-label={isSocialMenuOpen ? 'SNSメニューを閉じる' : 'SNSメニューを開く'} aria-expanded={isSocialMenuOpen} className="w-6 h-7 flex items-center justify-center"><IconGradients /><InstagramGradient size={17} /></button>
                                     <button type="button" onClick={toggleSocialMenu} aria-label={isSocialMenuOpen ? 'SNSメニューを閉じる' : 'SNSメニューを開く'} aria-expanded={isSocialMenuOpen} className="w-6 h-7 flex items-center justify-center"><TikTokGlitch size={15} /></button>
