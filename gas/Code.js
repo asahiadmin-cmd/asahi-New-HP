@@ -312,6 +312,19 @@ const EMAIL_CONFIG = {
 };
 
 /**
+ * 自動返信（控えメール）設定
+ * フォーム送信者本人の入力メールアドレス宛に、控えメールを送る際の設定
+ */
+const AUTO_REPLY_CONFIG = {
+  senderName: 'ライフサポートあさひ',          // 差出人の表示名
+  replyTo: 'hirayamakodai@asahi4649.com',       // 返信先アドレス
+  tel: '06-6746-7800',
+  address: '〒577-0011 大阪府東大阪市荒本北2丁目5-5',
+  recruit: { subject: '【自動返信】ご応募を受け付けました｜ライフサポートあさひ' },
+  contact: { subject: '【自動返信】お問い合わせを受け付けました｜ライフサポートあさひ' }
+};
+
+/**
  * POSTリクエストを処理してメールを送信
  * GASのCORS制限に対応するため、特別な処理を行う
  */
@@ -380,6 +393,26 @@ function doPost(e) {
 
     debugLog('Email sent successfully');
 
+    // 送信者本人へ控え（自動返信）メールを送信
+    // 失敗しても会社宛メール送信・記録には影響させない
+    try {
+      if (isValidEmail_(data.email)) {
+        const replyConfig = AUTO_REPLY_CONFIG[formType] || AUTO_REPLY_CONFIG.contact;
+        MailApp.sendEmail({
+          to: data.email,
+          subject: replyConfig.subject,
+          body: buildConfirmationBody_(data, formType),
+          name: AUTO_REPLY_CONFIG.senderName,
+          replyTo: AUTO_REPLY_CONFIG.replyTo
+        });
+        debugLog('Auto-reply sent to: ' + data.email);
+      } else {
+        debugLog('Auto-reply skipped (invalid email): ' + (data.email || '(empty)'));
+      }
+    } catch (replyErr) {
+      debugLog('Auto-reply failed: ' + replyErr.message);
+    }
+
     // スプレッドシートにも記録
     logToSheet_(data, formType);
 
@@ -439,6 +472,68 @@ function buildEmailBody_(data, formType) {
   body += 'このメールは自動送信です。\n';
 
   return body;
+}
+
+/**
+ * 送信者本人宛の控え（自動返信）メール本文を構築
+ */
+function buildConfirmationBody_(data, formType) {
+  const now = new Date();
+  const timestamp = Utilities.formatDate(now, 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss');
+  const name = (data.name && String(data.name).trim()) ? data.name : 'ご担当者';
+
+  let body = '';
+  body += name + ' 様\n\n';
+
+  if (formType === 'recruit') {
+    body += 'この度はライフサポートあさひの求人にご応募いただき、誠にありがとうございます。\n';
+    body += '以下の内容でご応募を受け付けいたしました。担当者より追ってご連絡いたしますので、今しばらくお待ちください。\n\n';
+  } else {
+    body += 'この度はライフサポートあさひへお問い合わせいただき、誠にありがとうございます。\n';
+    body += '以下の内容でお問い合わせを受け付けいたしました。担当者より追ってご連絡いたしますので、今しばらくお待ちください。\n\n';
+  }
+
+  body += '──────────────────────────────\n';
+  body += '【ご入力内容の控え】\n';
+  body += '受付日時: ' + timestamp + '\n\n';
+
+  if (formType === 'recruit') {
+    body += '■ お名前\n' + (data.name || '未入力') + '\n\n';
+    body += '■ メールアドレス\n' + (data.email || '未入力') + '\n\n';
+    body += '■ 電話番号\n' + (data.phone || '未入力') + '\n\n';
+    body += '■ 連絡希望\n' + (data.contactMethod || '未入力') + '\n\n';
+    if (data.preferredTime) {
+      body += '■ 希望連絡時間・曜日\n' + data.preferredTime + '\n\n';
+    }
+    body += '■ 希望職種\n' + (data.jobType || '未入力') + '\n\n';
+    body += '■ 希望面接場所・形式\n' + (data.interviewType || '未入力') + '\n';
+  } else {
+    body += '■ お名前\n' + (data.name || '未入力') + '\n\n';
+    body += '■ メールアドレス\n' + (data.email || '未入力') + '\n\n';
+    body += '■ 電話番号\n' + (data.phone || '未入力') + '\n\n';
+    body += '■ 連絡方法\n' + (data.contactMethod || '未入力') + '\n\n';
+    body += '■ メッセージ本文\n' + (data.message || '未入力') + '\n';
+  }
+
+  body += '──────────────────────────────\n\n';
+  body += '※本メールは送信専用アドレスから自動送信しています。\n';
+  body += '　ご返信いただいてもお答えできない場合がございます。お急ぎの場合は下記までお電話ください。\n';
+  body += '※本メールにお心当たりのない場合は、お手数ですが破棄してください。\n\n';
+  body += '────────────────────────\n';
+  body += 'ライフサポートあさひ\n';
+  body += 'TEL: ' + AUTO_REPLY_CONFIG.tel + '\n';
+  body += AUTO_REPLY_CONFIG.address + '\n';
+  body += '────────────────────────\n';
+
+  return body;
+}
+
+/**
+ * メールアドレスの簡易バリデーション
+ */
+function isValidEmail_(email) {
+  if (!email) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim());
 }
 
 /**
