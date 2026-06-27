@@ -522,11 +522,12 @@ function buildConfirmationBody_(data, formType) {
 
   body += '──────────────────────────────\n\n';
   body += '※本メールは送信専用アドレスから自動送信しています。\n';
-  body += '　ご返信いただいてもお答えできない場合がございます。お急ぎの場合は下記までお電話ください。\n';
-  body += '※本メールにお心当たりのない場合は、お手数ですが破棄してください。\n\n';
+  body += '　ご返信いただいてもお答えできない場合がございます。\n';
+  body += '　お急ぎの場合は、下記までお電話ください。\n';
+  body += 'TEL: ' + AUTO_REPLY_CONFIG.tel + '\n';
+  body += '※このメールにお心当たりがない場合には、お手数ですがその旨をご記入いただき、' + AUTO_REPLY_CONFIG.tel + 'までご連絡ください。\n\n';
   body += '────────────────────────\n';
   body += 'ライフサポートあさひ\n';
-  body += 'TEL: ' + AUTO_REPLY_CONFIG.tel + '\n';
   body += AUTO_REPLY_CONFIG.address + '\n';
   body += '────────────────────────\n';
 
