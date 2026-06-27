@@ -329,10 +329,11 @@ const AUTO_REPLY_CONFIG = {
  * GASのCORS制限に対応するため、特別な処理を行う
  */
 function doPost(e) {
-  // デバッグ用：スプレッドシートにログを書き込む
+  // デバッグ用：Webアプリ実行時でも参照できる非公開スプレッドシートにログを書き込む
   const debugLog = (message) => {
+    console.log(message);
     try {
-      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      const ss = SpreadsheetApp.openById(SECURE_SPREADSHEET_ID);
       let debugSheet = ss.getSheetByName('デバッグログ');
       if (!debugSheet) {
         debugSheet = ss.insertSheet('デバッグログ');
@@ -342,7 +343,7 @@ function doPost(e) {
       const timestamp = Utilities.formatDate(now, 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss');
       debugSheet.appendRow([timestamp, message]);
     } catch (err) {
-      // ログ書き込みエラーは無視
+      console.error('Debug log write failed:', err);
     }
   };
 
@@ -385,6 +386,7 @@ function doPost(e) {
     const body = buildEmailBody_(data, formType);
 
     // メール送信
+    debugLog('Mail quota before company notification: ' + MailApp.getRemainingDailyQuota());
     MailApp.sendEmail({
       to: config.to,
       subject: config.subject,
@@ -397,19 +399,22 @@ function doPost(e) {
     // 失敗しても会社宛メール送信・記録には影響させない
     try {
       if (isValidEmail_(data.email)) {
+        const recipient = String(data.email).trim();
         const replyConfig = AUTO_REPLY_CONFIG[formType] || AUTO_REPLY_CONFIG.contact;
+        debugLog('Mail quota before auto-reply: ' + MailApp.getRemainingDailyQuota());
         MailApp.sendEmail({
-          to: data.email,
+          to: recipient,
           subject: replyConfig.subject,
           body: buildConfirmationBody_(data, formType),
           name: AUTO_REPLY_CONFIG.senderName,
           replyTo: AUTO_REPLY_CONFIG.replyTo
         });
-        debugLog('Auto-reply sent to: ' + data.email);
+        debugLog('Auto-reply sent to: ' + recipient);
       } else {
         debugLog('Auto-reply skipped (invalid email): ' + (data.email || '(empty)'));
       }
     } catch (replyErr) {
+      console.error('Auto-reply failed:', replyErr);
       debugLog('Auto-reply failed: ' + replyErr.message);
     }
 
